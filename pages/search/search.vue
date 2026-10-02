@@ -1,0 +1,5 @@
+<template>
+  <view class="container">
+    <text>搜索页</text>
+  </view>
+</template>
