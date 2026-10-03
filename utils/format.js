@@ -1,26 +1,38 @@
-// 分类映射
-const CATEGORY_MAP = {
-  found: '招领',
-  lost: '寻物'
-}
+import { CATEGORY_OPTIONS, CATEGORY_VALUES, STATUS_OPTIONS, STATUS_VALUES } from './constants.js'
 
-// 状态映射
-const STATUS_MAP = {
-  ongoing: '进行中',
-  completed: '已完成'
-}
+// 分类 / 状态映射：由 constants.js 中「显示中文 / 存储英文」的平行数组派生，
+// 保证枚举只在一处维护，避免多处硬编码后出现不一致。
+const CATEGORY_MAP = Object.fromEntries(CATEGORY_VALUES.map((v, i) => [v, CATEGORY_OPTIONS[i]]))
+const STATUS_MAP = Object.fromEntries(STATUS_VALUES.map((v, i) => [v, STATUS_OPTIONS[i]]))
 
-// 分类英文转中文
+// ========== 英文 → 中文（显示用）==========
+
 export function formatCategory(cat) {
   return CATEGORY_MAP[cat] || cat
 }
 
-// 状态码转中文
 export function formatStatus(status) {
   return STATUS_MAP[status] || status
 }
 
-// 时间戳转 YYYY-MM-DD HH:mm
+// ========== 中文 → 英文（存储用）==========
+
+export function parseCategory(cat) {
+  const i = CATEGORY_OPTIONS.indexOf(cat)
+  return i >= 0 ? CATEGORY_VALUES[i] : cat
+}
+
+// 组合状态标签（卡片角标 / 详情用）：
+//   进行中：寻物中 / 招领中；已完成：已寻回 / 已招领
+export function formatStatusText(category, status) {
+  if (status === 'completed') {
+    return category === 'lost' ? '已寻回' : '已招领'
+  }
+  return category === 'lost' ? '寻物中' : '招领中'
+}
+
+// ========== 时间相关 ==========
+
 export function formatTime(timestamp) {
   const d = new Date(timestamp)
   const y = d.getFullYear()
@@ -31,7 +43,6 @@ export function formatTime(timestamp) {
   return `${y}-${m}-${day} ${h}:${min}`
 }
 
-// 相对时间：刚刚 / x分钟前 / x小时前 / x天前
 export function formatRelativeTime(timestamp) {
   const diff = Date.now() - timestamp
   const minute = 60 * 1000
@@ -42,13 +53,4 @@ export function formatRelativeTime(timestamp) {
   if (diff < day) return `${Math.floor(diff / hour)}小时前`
   if (diff < 7 * day) return `${Math.floor(diff / day)}天前`
   return formatTime(timestamp)
-}
-
-// 按关键词和分类过滤列表
-export function filterItems(items, keyword, category) {
-  return items.filter(item => {
-    const matchKeyword = !keyword || item.title.includes(keyword) || item.location.includes(keyword)
-    const matchCategory = !category || item.category === category
-    return matchKeyword && matchCategory
-  })
 }
