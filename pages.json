@@ -3,7 +3,7 @@
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "校园失物招领",
+				"navigationBarTitleText": "首页",
 				"navigationStyle": "custom"
 			}
 		},
@@ -11,35 +11,40 @@
 			"path": "pages/search/search",
 			"style": {
 				"navigationBarTitleText": "搜索",
-				"navigationBarBackgroundColor": "#F9F1E6"
+				"navigationBarBackgroundColor": "#F9F1E6",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/detail/detail",
 			"style": {
 				"navigationBarTitleText": "详情",
-				"navigationBarBackgroundColor": "#F9F1E6"
+				"navigationBarBackgroundColor": "#F9F1E6",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/publish/publish",
 			"style": {
 				"navigationBarTitleText": "发布信息",
-				"navigationBarBackgroundColor": "#F9F1E6"
+				"navigationBarBackgroundColor": "#F9F1E6",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/profile/profile",
 			"style": {
 				"navigationBarTitleText": "个人中心",
-				"navigationBarBackgroundColor": "#F9F1E6"
+				"navigationBarBackgroundColor": "#F9F1E6",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/modal/modal",
 			"style": {
 				"navigationBarTitleText": "提示",
-				"navigationBarBackgroundColor": "#F9F1E6"
+				"navigationBarBackgroundColor": "#F9F1E6",
+				"navigationStyle": "custom"
 			}
 		}
 	],
