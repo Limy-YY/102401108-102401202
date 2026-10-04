@@ -34,6 +34,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { backOrHome, getCurrentRoute } from '@/utils/nav.js'
 
 // 支持 v-model 双向绑定，showDate 控制日期提示显隐
 const props = defineProps({
@@ -61,11 +62,7 @@ watch(keyword, (val) => { emit('update:modelValue', val) })
 onMounted(() => {
   keyword.value = props.modelValue
   // 根据当前页面路由判断是否显示返回按钮
-  const pages = getCurrentPages()
-  if (pages.length > 0) {
-    const currentPage = pages[pages.length - 1]
-    showBack.value = currentPage.route === 'pages/search/search'
-  }
+  showBack.value = getCurrentRoute() === 'pages/search/search'
 })
 
 // 点击输入框容器，主动聚焦 input
@@ -81,7 +78,7 @@ const focusInput = () => {
 }
 
 // 返回上一页
-const handleBack = () => { uni.navigateBack({ delta: 1 }) }
+const handleBack = () => { backOrHome() }
 
 // 搜索处理：空值校验 + 页面路由判断
 const handleSearch = () => {
@@ -90,11 +87,9 @@ const handleSearch = () => {
     uni.showToast({ title: '请输入搜索内容', icon: 'none' })
     return
   }
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1]
   // 已在搜索页：触发 search 事件通知父组件
   // 不在搜索页：跳转到搜索页并携带 keyword 参数
-  if (currentPage.route === 'pages/search/search') {
+  if (getCurrentRoute() === 'pages/search/search') {
     emit('search', value)
   } else {
     uni.navigateTo({ url: `/pages/search/search?keyword=${encodeURIComponent(value)}` })

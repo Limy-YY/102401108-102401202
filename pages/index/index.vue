@@ -19,14 +19,14 @@
     </view>
 
     <!-- 列表为空：普通流居中展示占位，不渲染滚动区，避免空列表仍可下滑 -->
-    <view v-if="displayList.length === 0" class="empty-wrap">
+    <view v-if="displayList.length === 0" class="empty-wrap list-fill-center">
       <EmptyState />
     </view>
 
     <!-- 列表滚动区：有数据时才渲染，支持下拉刷新 -->
     <scroll-view
       v-else
-      class="list-container"
+      class="list-container list-fill"
       scroll-y
       @refresherrefresh="onRefresh"
       :refresher-enabled="true"
@@ -136,28 +136,6 @@ const goToSearchPage = () => {
   color: #FF7A33;
   font-weight: bold;
   border-bottom: 4rpx solid #FF7A33;
-}
-
-/* 列表滚动区：占据头部与底部之间的剩余空间 */
-.list-container {
-  flex: 1;
-  height: 0;
-  min-height: 0;
-}
-
-/* 空列表占位容器：撑满列表区并居中，普通流不产生滚动 */
-.empty-wrap {
-  flex: 1;
-  height: 0;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 底部占位：高度与固定底部导航栏相当，避免最后一张卡片被遮挡 */
-.list-bottom-space {
-  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 
 ::v-deep .list-container,

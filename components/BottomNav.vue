@@ -22,12 +22,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { getCurrentRoute } from '@/utils/nav.js'
 
 // 获取当前页面路径，用于高亮当前选中的 Tab
-const pages = getCurrentPages()
-const currentPage = pages[pages.length - 1]
-const currentPath = '/' + currentPage.route
+const currentPath = '/' + getCurrentRoute()
 
 // 切换 Tab 页面，已在当前页时不重复跳转
 const switchTab = (url) => {

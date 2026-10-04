@@ -54,3 +54,10 @@ export function formatRelativeTime(timestamp) {
   if (diff < 7 * day) return `${Math.floor(diff / day)}天前`
   return formatTime(timestamp)
 }
+
+// 将 'YYYY-MM-DD' 解析为时间戳（手动解析，规避 iOS 对带横杠日期 new Date 解析的兼容问题）
+export function parseDate(str) {
+  const parts = String(str).split('-').map(Number)
+  if (parts.length < 3 || parts.some(isNaN)) return NaN
+  return new Date(parts[0], parts[1] - 1, parts[2]).getTime()
+}

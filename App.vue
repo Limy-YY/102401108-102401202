@@ -16,4 +16,25 @@ body,
 html {
   overscroll-behavior: none;
 }
+
+/* 列表页通用布局类（首页 / 我的发布共用）：
+   占满头部与底部之间的剩余高度、空状态居中、底部占位撑开导航遮挡 */
+.list-fill {
+  flex: 1;
+  height: 0;
+  min-height: 0;
+}
+
+.list-fill-center {
+  flex: 1;
+  height: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-bottom-space {
+  height: calc(140rpx + env(safe-area-inset-bottom));
+}
 </style>

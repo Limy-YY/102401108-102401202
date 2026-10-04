@@ -30,3 +30,6 @@ export const COLOR_LIST = ['黑色', '灰色', '白色', '棕色', '红色', '�
 // 状态：显示中文，存储英文
 export const STATUS_OPTIONS = ['进行中', '已完成']
 export const STATUS_VALUES = ['ongoing', 'completed']
+
+// 搜索页「时间」筛选：中文选项 → 天数（近 N 天内）
+export const TIME_FILTER_DAYS = { '一天内': 1, '三天内': 3, '一周内': 7, '两周内': 14, '四周内': 28 }

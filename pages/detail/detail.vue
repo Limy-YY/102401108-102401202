@@ -86,6 +86,7 @@ import { getItemById, deleteItem } from '@/utils/storage.js'
 import { formatCategory, formatStatus, formatTime } from '@/utils/format.js'
 import ProfileCard from '@/components/ProfileCard.vue'
 import { getUserInfo } from '@/utils/user.js'
+import { backOrHome } from '@/utils/nav.js'
 
 const item = ref(null)
 const itemId = ref(null)
@@ -129,12 +130,7 @@ onLoad((options) => {
 
 // 返回上一级；若无上级页面（如直接打开），回退到首页
 const goBack = () => {
-  const pages = getCurrentPages()
-  if (pages.length > 1) {
-    uni.navigateBack()
-  } else {
-    uni.switchTab({ url: '/pages/index/index' })
-  }
+  backOrHome()
 }
 
 // 编辑：跳转到发布页。publish 是 tabBar 页，switchTab 无法携带 query 参数，

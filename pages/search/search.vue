@@ -98,10 +98,10 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { onLoad, onBackPress } from '@dcloudio/uni-app'
+import { onLoad } from '@dcloudio/uni-app'
 import { getItems } from '@/utils/storage.js'
-import { parseCategory } from '@/utils/format.js'
-import { CATEGORY_OPTIONS, LOCATION_TAGS, COLOR_LIST } from '@/utils/constants.js'
+import { parseCategory, parseDate } from '@/utils/format.js'
+import { CATEGORY_OPTIONS, LOCATION_TAGS, COLOR_LIST, TIME_FILTER_DAYS } from '@/utils/constants.js'
 import SearchBar from '@/components/SearchBar.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -157,16 +157,6 @@ const selectOption = (option) => {
   activeFilter.value = null
 }
 
-// 时间筛选项对应的天数
-const TIME_DAYS = { '一天内': 1, '三天内': 3, '一周内': 7, '两周内': 14, '四周内': 28 }
-
-// 将 'YYYY-MM-DD' 解析为时间戳（手动解析，避免 iOS 对带横杠日期解析的兼容问题）
-function parseDate(str) {
-  const parts = String(str).split('-').map(Number)
-  if (parts.length < 3 || parts.some(isNaN)) return NaN
-  return new Date(parts[0], parts[1] - 1, parts[2]).getTime()
-}
-
 // --- 数据过滤：关键词 + 多条件筛选 ---
 const displayItems = computed(() => {
   let list = [...allItems.value]
@@ -197,8 +187,8 @@ const displayItems = computed(() => {
     list = list.filter(item => item.color === filters.value.color)
   }
 
-  // 时间过滤：丢失/拾取时间在 N 天以内
-  const days = TIME_DAYS[filters.value.time]
+  // 时间过滤：发现时间在 N 天以内
+  const days = TIME_FILTER_DAYS[filters.value.time]
   if (days) {
     const threshold = Date.now() - days * 24 * 60 * 60 * 1000
     list = list.filter(item => {
@@ -210,20 +200,16 @@ const displayItems = computed(() => {
   return list
 })
 
-// --- 返回按钮拦截：强制返回首页 ---
-onBackPress(() => {
-  uni.reLaunch({ url: '/pages/index/index' })
-  return true
-})
-
 // --- 动态计算各区域高度 ---
-const GAP_PX = 0
-const FILTER_BAR_PX = 36
-const CARD_TOP_GAP = 8
+// 搜索栏高度由 DOM 实测得到；筛选栏、卡片间距为固定像素值（px，用于 fixed 定位布局）
+const GAP_PX = 0            // 搜索栏与筛选栏之间的间距
+const FILTER_BAR_PX = 36    // 筛选栏高度
+const CARD_TOP_GAP = 8      // 内容区顶部与筛选栏的间距
 const searchBarHeight = ref(0)
 
 onMounted(() => {
   nextTick(() => {
+    // 延迟测量：等待首帧渲染完成后，搜索栏高度才稳定
     setTimeout(() => {
       const query = uni.createSelectorQuery()
       query.select('.search-bar-fixed').boundingClientRect((rect) => {

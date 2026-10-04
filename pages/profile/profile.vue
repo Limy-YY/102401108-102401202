@@ -15,12 +15,12 @@
     </view>
 
     <!-- 无发布：普通流居中展示占位，不渲染滚动区，避免空列表仍可下滑 -->
-    <view v-if="myItems.length === 0" class="empty-wrap">
+    <view v-if="myItems.length === 0" class="empty-wrap list-fill-center">
       <EmptyState />
     </view>
 
     <!-- 发布列表滚动区：仅列表可滚动 -->
-    <scroll-view v-else class="list-container" scroll-y :enhanced="true" :bounces="false">
+    <scroll-view v-else class="list-container list-fill" scroll-y :enhanced="true" :bounces="false">
       <ItemCard
         v-for="item in myItems"
         :key="item.id"
@@ -28,7 +28,7 @@
       />
 
       <!-- 底部占位：避免最后一张卡片被底部导航栏遮挡 -->
-      <view class="bottom-space"></view>
+      <view class="list-bottom-space"></view>
     </scroll-view>
 
     <!-- 底部导航栏（与首页一致） -->
@@ -91,28 +91,6 @@ onPageShow(() => {
   font-size: 30rpx;
   font-weight: bold;
   color: #333333;
-}
-
-/* 列表滚动区：占据头部与底部之间的剩余空间 */
-.list-container {
-  flex: 1;
-  height: 0;
-  min-height: 0;
-}
-
-/* 空列表占位容器：撑满列表区并居中，普通流不产生滚动 */
-.empty-wrap {
-  flex: 1;
-  height: 0;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 底部占位：高度与固定底部导航栏相当，避免最后一张卡片被遮挡 */
-.bottom-space {
-  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 
 /* H5 下阻止内容不足/到达边界时回弹（露出背景色） */
