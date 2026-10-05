@@ -7,7 +7,6 @@
     <view class="brand">
       <image class="logo" src="/static/logo.png" mode="aspectFit" />
       <text class="app-name">校园失物招领</text>
-      <text class="slogan">{{ isLogin ? '欢迎回来，请登录' : '第一次使用，请注册学号' }}</text>
     </view>
 
     <!-- 模式切换：登录 / 注册 -->
@@ -28,8 +27,6 @@
     <view class="form-card">
       <!-- 账号 -->
       <view class="field">
-        <text class="field-label">学号</text>
-        <input class="field-input" v-model="form.username" placeholder="请输入学号" placeholder-class="ph" />
       </view>
 
       <!-- 密码 -->
@@ -88,7 +85,6 @@ const form = reactive({
 
 // 客户端校验：返回错误文案或空串
 function validate() {
-  if (!form.username.trim()) return '请输入学号'
   if (!form.password) return '请输入密码'
   if (form.password.length < 6) return '密码至少 6 位'
   if (!isLogin.value) {
