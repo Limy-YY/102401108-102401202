@@ -1,0 +1,21 @@
+{
+  "name": "campus-lost-found",
+  "version": "1.0.0",
+  "private": true,
+  "description": "校园失物招领（uni-app Vue3，命令行运行 H5）",
+  "scripts": {
+    "dev:h5": "node scripts/run.js",
+    "build:h5": "node scripts/run.js build"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-alpha-5030120260930001",
+    "@dcloudio/uni-components": "3.0.0-alpha-5030120260930001",
+    "@dcloudio/uni-h5": "3.0.0-alpha-5030120260930001",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-cli-shared": "3.0.0-alpha-5030120260930001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5030120260930001",
+    "vite": "^5.2.8"
+  }
+}

@@ -1,0 +1,24 @@
+﻿=== 1) register alice ===
+token=u1791200650754349 nickname=Alice
+=== 2) duplicate register alice should fail ===
+  rejected: HTTP 409
+=== 3) register bob ===
+token=u1791200650860231
+=== 4) wrong password login bob should fail ===
+  rejected: HTTP 401
+=== 5) alice publishes a found item ===
+item id=1791200650870 publisherId=u1791200650754349
+=== 6) bob views plaza (should see alice item, shared) ===
+plaza count=1 first=black-wallet
+=== 7) bob my-items (should be empty, isolated) ===
+bob mine count=0
+=== 8) alice my-items (should be 1) ===
+alice mine count=1
+=== 9) detail returns publisher card ===
+publisher nickname=Alice wechat=alice_wx phone=13800000001
+=== 10) bob deletes alice item (should 403) ===
+  result: HTTP 403
+=== 11) alice deletes own item (should ok) ===
+  result: @{ok=True}
+=== 12) plaza after delete (should be 0) ===
+plaza count=0

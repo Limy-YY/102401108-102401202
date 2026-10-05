@@ -1,0 +1,25 @@
+{
+  "users": [
+    {
+      "id": "u1791202053283992",
+      "username": "testphone2",
+      "password": "secret1",
+      "nickname": "T2",
+      "wechat": "",
+      "phone": "13900001111",
+      "avatar": "",
+      "createTime": 1791202053283
+    },
+    {
+      "id": "u1791202069098143",
+      "username": "tp2",
+      "password": "secret1",
+      "nickname": "T2",
+      "wechat": "",
+      "phone": "13900001111",
+      "avatar": "",
+      "createTime": 1791202069098
+    }
+  ],
+  "items": []
+}

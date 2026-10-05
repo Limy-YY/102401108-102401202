@@ -67,7 +67,7 @@
       <!-- 发布者个人名片 -->
       <view class="publisher-section">
         <text class="publisher-title">联系发布者</text>
-        <ProfileCard :userInfo="userInfo" />
+        <ProfileCard :userInfo="publisher" />
       </view>
     </view>
 
@@ -85,19 +85,19 @@ import { onLoad } from '@dcloudio/uni-app'
 import { getItemById, deleteItem } from '@/utils/storage.js'
 import { formatCategory, formatStatus, formatTime } from '@/utils/format.js'
 import ProfileCard from '@/components/ProfileCard.vue'
-import { getUserInfo } from '@/utils/user.js'
+import { getCurrentUser } from '@/utils/auth.js'
 import { backOrHome } from '@/utils/nav.js'
 
 const item = ref(null)
 const itemId = ref(null)
-// 发布者个人名片（当前为单用户本地数据，取自用户资料）
-const userInfo = getUserInfo()
+// 发布者个人名片：从后端详情接口返回的 publisher 取（多用户：显示真正的发布者）
+const publisher = ref({ nickname: '', wechat: '', phone: '', avatar: '' })
 
-// 是否本人发布：仅本人可编辑/删除；老数据无 publisherId 时视为本人（单用户本地兼容）
+// 是否本人发布：仅本人可编辑/删除
 const isMine = computed(() => {
   if (!item.value) return false
-  if (!item.value.publisherId) return true
-  return item.value.publisherId === userInfo.id
+  const me = getCurrentUser()
+  return !!me && item.value.publisherId === me.id
 })
 
 // 图片列表：兼容 images 缺失/为空/含空字符串等旧数据，过滤出有效图片地址
@@ -120,11 +120,17 @@ const previewImage = (index) => {
   })
 }
 
-onLoad((options) => {
+onLoad(async (options) => {
   const id = options && options.id
   if (id) {
     itemId.value = Number(id)
-    item.value = getItemById(itemId.value)
+    try {
+      const res = await getItemById(itemId.value)
+      item.value = res.item
+      publisher.value = res.publisher || { nickname: '', wechat: '', phone: '', avatar: '' }
+    } catch (e) {
+      item.value = null
+    }
   }
 })
 
@@ -144,13 +150,17 @@ const handleDelete = () => {
   uni.showModal({
     title: '确认删除',
     content: '删除后无法恢复，确定要删除吗？',
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        deleteItem(itemId.value)
-        uni.showToast({ title: '已删除', icon: 'success' })
-        setTimeout(() => {
-          uni.navigateBack()
-        }, 800)
+        try {
+          await deleteItem(itemId.value)
+          uni.showToast({ title: '已删除', icon: 'success' })
+          setTimeout(() => {
+            uni.navigateBack()
+          }, 800)
+        } catch (e) {
+          uni.showToast({ title: e.message || '删除失败', icon: 'none' })
+        }
       }
     }
   })
