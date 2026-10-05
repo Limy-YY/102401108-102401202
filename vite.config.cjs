@@ -6,4 +6,11 @@ const { defineConfig } = require('vite')
 const uni = require('@dcloudio/vite-plugin-uni')
 
 module.exports = defineConfig({
+  plugins: [uni.default ? uni.default() : uni()],
+  server: {
+    host: true, // 监听所有网卡，允许用 fzulostandfound / 局域网 IP 访问
+    port: 80,   // 80 端口：浏览器里 http://fzulostandfound 不用写端口
+    open: true, // 启动开发服务器后自动打开浏览器
+    allowedHosts: ['fzulostandfound'] // 放行自定义域名，避免 403
+  }
 })
