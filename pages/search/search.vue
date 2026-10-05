@@ -157,14 +157,18 @@ const selectOption = (option) => {
 const displayItems = computed(() => {
   let list = [...allItems.value]
 
-  // 关键词过滤：匹配物品名称 / 场所 / 具体位置
+  // 关键词：拆成多个词，要求全部命中（更精准）；
+  // 匹配 物品名称 / 场所 / 具体位置 / 颜色 / 细节描述
   const kw = appliedKeyword.value.trim().toLowerCase()
-  if (kw) {
-    list = list.filter(item =>
-      (item.itemName || '').toLowerCase().includes(kw) ||
-      (item.locationTag || '').toLowerCase().includes(kw) ||
-      (item.locationDetail || '').toLowerCase().includes(kw)
-    )
+  const terms = kw ? kw.split(/\s+/).filter(Boolean) : []
+  if (terms.length) {
+    list = list.filter(item => {
+      const hay = [
+        item.itemName, item.locationTag, item.locationDetail,
+        item.color, item.detail
+      ].map(s => (s || '').toLowerCase()).join(' ')
+      return terms.every(t => hay.includes(t))
+    })
   }
 
   // 类型过滤：中文显示 → 英文枚举
@@ -187,6 +191,27 @@ const displayItems = computed(() => {
       return !isNaN(t) && t >= threshold
     })
   }
+
+  // 排序：
+  //  1) 已寻回/已招领（completed）一律沉到底部
+  //  2) 名称里命中关键词越多越靠前（精准找物）
+  //  3) 其余按最新发布优先
+  list.sort((a, b) => {
+    const scoreOf = (item) => {
+      let s = 0
+      if (item.status === 'completed') s += 1000
+      if (terms.length) {
+        const name = (item.itemName || '').toLowerCase()
+        const nameHits = terms.filter(t => name.includes(t)).length
+        s -= nameHits * 10            // 名称命中多 → 靠前
+        if (nameHits === 0) s += 50   // 只在细节/位置命中 → 靠后
+      }
+      return s
+    }
+    const d = scoreOf(a) - scoreOf(b)
+    if (d !== 0) return d
+    return (b.createTime || 0) - (a.createTime || 0)
+  })
 
   return list
 })
