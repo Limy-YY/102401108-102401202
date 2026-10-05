@@ -257,7 +257,7 @@ const handleCancel = () => {
 };
 
 // 提交表单
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (isSubmitting.value) return;
 
   // 提交前整表校验，未通过则提示第一条错误
@@ -273,14 +273,19 @@ const handleSubmit = () => {
   const payload = {};
   PAYLOAD_FIELDS.forEach((f) => { payload[f] = form[f]; });
 
-  let savedItem;
   // 先记录本次是「修改」还是「发布」，resetForm 会把 isEdit 复位，故需提前保存
   const wasEdit = isEdit.value;
-  if (wasEdit) {
-    updateItem(editId.value, payload);
-    savedItem = getItemById(editId.value);
-  } else {
-    savedItem = saveItem(payload);
+  let savedItem;
+  try {
+    if (wasEdit) {
+      savedItem = await updateItem(editId.value, payload);
+    } else {
+      savedItem = await saveItem(payload);
+    }
+  } catch (e) {
+    isSubmitting.value = false;
+    uni.showToast({ title: e.message || '提交失败', icon: 'none' });
+    return;
   }
 
   // 提交成功即结束本次编辑/发布，复位表单，避免下次回到本页仍残留旧内容
@@ -297,22 +302,25 @@ const handleSubmit = () => {
 
 // 页面显示时：区分「新建」和「编辑」。
 // 注意：不要在这里无脑清空表单，否则编辑中途切换 Tab 再切回会丢失已填内容。
-onShow(() => {
+onShow(async () => {
   // 编辑模式：从详情页「编辑」进入时通过 storage 传递待编辑 id。
   // publish 是 tabBar 页，switchTab 无法携带 query，故用 storage 中转后立即清除。
   const rawEditId = uni.getStorageSync('edit_item_id');
   if (rawEditId) {
     uni.removeStorageSync('edit_item_id');
-    const item = getItemById(Number(rawEditId));
-    if (item) {
-      isEdit.value = true;
-      editId.value = item.id;
-      // 只回填白名单字段，缺失字段用空表单默认值兜底（status 默认 ongoing、images 默认 []）
-      const defaults = createEmptyForm();
-      PAYLOAD_FIELDS.forEach((f) => {
-        form[f] = item[f] == null ? defaults[f] : item[f];
-      });
-    }
+    try {
+      const res = await getItemById(Number(rawEditId));
+      const item = res.item;
+      if (item) {
+        isEdit.value = true;
+        editId.value = item.id;
+        // 只回填白名单字段，缺失字段用空表单默认值兜底（status 默认 ongoing、images 默认 []）
+        const defaults = createEmptyForm();
+        PAYLOAD_FIELDS.forEach((f) => {
+          form[f] = item[f] == null ? defaults[f] : item[f];
+        });
+      }
+    } catch (e) {}
     return;
   }
 

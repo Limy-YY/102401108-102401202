@@ -106,8 +106,8 @@ import SearchBar from '@/components/SearchBar.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
-// --- 数据源：本地存储的全部物品 ---
-const allItems = ref(getItems())
+// --- 数据源：后端广场的全部物品（异步加载）---
+const allItems = ref([])
 
 // --- 搜索相关 ---
 // 输入框当前文字：实时绑定输入框，仅在输入时变化
@@ -116,7 +116,12 @@ const keyword = ref('')
 const appliedKeyword = ref('')
 
 // 读取从首页搜索栏跳转携带的关键词（此时搜索动作已在首页发生，故同步生效）
-onLoad((options) => {
+onLoad(async (options) => {
+  try {
+    allItems.value = await getItems()
+  } catch (e) {
+    allItems.value = []
+  }
   if (options && options.keyword) {
     keyword.value = decodeURIComponent(options.keyword)
     appliedKeyword.value = keyword.value

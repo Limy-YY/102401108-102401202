@@ -31,6 +31,9 @@
       <view class="list-bottom-space"></view>
     </scroll-view>
 
+    <!-- 退出登录 -->
+    <view class="logout-btn" @click="handleLogout">退出登录</view>
+
     <!-- 底部导航栏（与首页一致） -->
     <BottomNav />
   </view>
@@ -45,15 +48,35 @@ import ItemCard from '@/components/ItemCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BottomNav from '@/components/BottomNav.vue'
 import { getUserInfo } from '@/utils/user.js'
+import { logout } from '@/utils/auth.js'
 
-// 当前用户资料（占位数据，来源统一在 utils/user.js）
-const userInfo = getUserInfo()
+// 当前用户资料（来自登录缓存）
+const userInfo = ref(getUserInfo())
 const myItems = ref([])
 
-// 页面每次显示时重新加载「我的发布」
-onPageShow(() => {
-  myItems.value = getMyItems()
+// 页面每次显示时重新加载「我的发布」与最新资料
+onPageShow(async () => {
+  userInfo.value = getUserInfo()
+  try {
+    myItems.value = await getMyItems()
+  } catch (e) {
+    myItems.value = []
+  }
 })
+
+// 退出登录：清除登录态后回到登录/注册页
+const handleLogout = () => {
+  uni.showModal({
+    title: '提示',
+    content: '确定要退出登录吗？',
+    success: (res) => {
+      if (res.confirm) {
+        logout()
+        uni.reLaunch({ url: '/pages/login/login' })
+      }
+    }
+  })
+}
 </script>
 
 <style scoped>
@@ -98,5 +121,18 @@ onPageShow(() => {
 ::v-deep .list-container .uni-scroll-view,
 ::v-deep .list-container .uni-scroll-view-content {
   overscroll-behavior: none;
+}
+
+/* 退出登录按钮：固定在底部导航上方 */
+.logout-btn {
+  flex-shrink: 0;
+  margin: 20rpx 60rpx 140rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  background-color: #FFFFFF;
+  color: #E64340;
+  border-radius: 40rpx;
+  font-size: 28rpx;
 }
 </style>

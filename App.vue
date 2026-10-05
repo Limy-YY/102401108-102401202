@@ -1,4 +1,13 @@
 <script setup>
+import { onLaunch } from '@dcloudio/uni-app'
+import { isLoggedIn } from '@/utils/auth.js'
+
+// 启动登录守卫：未登录（第一次进入或退出登录后）一律跳到登录/注册页
+onLaunch(() => {
+  if (!isLoggedIn()) {
+    uni.reLaunch({ url: '/pages/login/login' })
+  }
+})
 </script>
 
 <template>
