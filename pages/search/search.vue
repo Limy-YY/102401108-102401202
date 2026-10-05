@@ -12,7 +12,7 @@
       />
     </view>
 
-    <!-- 筛选栏：类型 / 时间 / 地点 / 颜色 -->
+    <!-- 筛选栏：类型 / 时间 / 地点 -->
     <view class="filter-bar" :style="{ top: topOffset }">
       <!-- 漏斗图标，纯展示 -->
       <view class="filter-icon-btn">
@@ -41,14 +41,6 @@
         @click="openFilter('location')"
       >
         <text>{{ filters.location || '地点' }}</text>
-        <text class="arrow">▾</text>
-      </view>
-      <view
-        class="filter-item"
-        :class="{ active: activeFilter === 'color' }"
-        @click="openFilter('color')"
-      >
-        <text>{{ filters.color || '颜色' }}</text>
         <text class="arrow">▾</text>
       </view>
     </view>
@@ -101,7 +93,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getItems } from '@/utils/storage.js'
 import { parseCategory, parseDate } from '@/utils/format.js'
-import { CATEGORY_OPTIONS, LOCATION_TAGS, COLOR_LIST, TIME_FILTER_DAYS } from '@/utils/constants.js'
+import { CATEGORY_OPTIONS, LOCATION_TAGS, TIME_FILTER_DAYS } from '@/utils/constants.js'
 import SearchBar from '@/components/SearchBar.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -134,14 +126,13 @@ const handleSearch = (val) => {
 }
 
 // --- 筛选相关 ---
-const filters = ref({ type: '', time: '', location: '', color: '' })
+const filters = ref({ type: '', time: '', location: '' })
 
-// 各筛选项的可选项列表（分类/场所/颜色与发布页共用同一份常量）
+// 各筛选项的可选项列表（分类/场所与发布页共用同一份常量）
 const filterOptions = {
   type: ['全部', ...CATEGORY_OPTIONS],
   time: ['全部', '一天内', '三天内', '一周内', '两周内', '四周内'],
-  location: ['全部', ...LOCATION_TAGS],
-  color: ['全部', ...COLOR_LIST]
+  location: ['全部', ...LOCATION_TAGS]
 }
 
 const activeFilter = ref(null)
@@ -185,11 +176,6 @@ const displayItems = computed(() => {
   // 场所过滤：精确匹配
   if (filters.value.location) {
     list = list.filter(item => item.locationTag === filters.value.location)
-  }
-
-  // 颜色过滤：精确匹配
-  if (filters.value.color) {
-    list = list.filter(item => item.color === filters.value.color)
   }
 
   // 时间过滤：发现时间在 N 天以内

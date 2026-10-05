@@ -112,13 +112,13 @@ const server = http.createServer(async (req, res) => {
       const password = String(b.password || '')
       const nickname = String(b.nickname || '').trim()
 
-      if (!username) return send(res, 400, { message: '请输入账号' })
+      if (!username) return send(res, 400, { message: '请输入学号' })
       if (password.length < 6) return send(res, 400, { message: '密码至少 6 位' })
       if (!nickname) return send(res, 400, { message: '请输入昵称' })
       const phone = String(b.phone || '').trim()
       if (!/^1\d{10}$/.test(phone)) return send(res, 400, { message: '请输入正确的手机号' })
       if (db.users.some(u => u.username === username)) {
-        return send(res, 409, { message: '该账号已被注册' })
+        return send(res, 409, { message: '该学号已被注册' })
       }
 
       const user = {
@@ -141,7 +141,7 @@ const server = http.createServer(async (req, res) => {
       const b = await readBody(req)
       const username = String(b.username || '').trim()
       const user = db.users.find(u => u.username === username)
-      if (!user) return send(res, 404, { message: '账号不存在，请先注册' })
+      if (!user) return send(res, 404, { message: '学号不存在，请先注册' })
       if (user.password !== String(b.password || '')) {
         return send(res, 401, { message: '密码错误' })
       }

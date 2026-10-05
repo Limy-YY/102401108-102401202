@@ -82,16 +82,22 @@
       </view>
     </view>
 
-    <!-- 时间 -->
+    <!-- 时间：日期 + 具体时间（精确到分钟） -->
     <view class="form-item">
       <view class="item-label">
         <text class="label-icon">🕐</text>
         <text>时间</text>
       </view>
-      <view class="item-content-wrapper">
-        <picker mode="date" :value="form.time" @change="onTimeChange">
+      <view class="item-content-wrapper time-pickers">
+        <picker mode="date" :value="datePart" @change="onDateChange">
           <view class="input-box">
-            <text :class="{ 'placeholder': form.time === '' }">{{ form.time || '请选择发现时间' }}</text>
+            <text :class="{ 'placeholder': !datePart }">{{ datePart || timePlaceholder }}</text>
+            <text class="arrow"></text>
+          </view>
+        </picker>
+        <picker mode="time" :value="timePart" @change="onClockChange">
+          <view class="input-box">
+            <text :class="{ 'placeholder': !timePart }">{{ timePart || '选择具体时间' }}</text>
             <text class="arrow"></text>
           </view>
         </picker>
@@ -105,12 +111,7 @@
         <text>颜色</text>
       </view>
       <view class="item-content-wrapper">
-        <picker mode="selector" :range="COLOR_LIST" :value="colorIndex" @change="onColorChange">
-          <view class="input-box">
-            <text :class="{ 'placeholder': form.color === '' }">{{ form.color || '请选择' }}</text>
-            <text class="arrow"></text>
-          </view>
-        </picker>
+        <input class="input-box" v-model="form.color" placeholder="请输入物品颜色，如黑色、藏青色" placeholder-class="placeholder" />
       </view>
     </view>
 
@@ -172,7 +173,7 @@ import { ref, reactive, computed } from 'vue';
 import { saveItem, updateItem, getItemById } from '@/utils/storage.js';
 import { validateForm } from '@/utils/validator.js';
 import { formatCategory, formatStatus } from '@/utils/format.js';
-import { CATEGORY_OPTIONS, CATEGORY_VALUES, LOCATION_TAGS, COLOR_LIST, STATUS_OPTIONS, STATUS_VALUES } from '@/utils/constants.js';
+import { CATEGORY_OPTIONS, CATEGORY_VALUES, LOCATION_TAGS, STATUS_OPTIONS, STATUS_VALUES } from '@/utils/constants.js';
 import { fileToDataURL } from '@/utils/image.js';
 import { backOrHome } from '@/utils/nav.js';
 
@@ -202,7 +203,6 @@ const editId = ref(null);
 // 让 picker 回显正确选中项：indexOf 未选中时返回 -1，用 Math.max(0, ...) 兜底为 0
 const typeIndex = computed(() => Math.max(0, CATEGORY_VALUES.indexOf(form.category)));
 const locationTagIndex = computed(() => Math.max(0, LOCATION_TAGS.indexOf(form.locationTag)));
-const colorIndex = computed(() => Math.max(0, COLOR_LIST.indexOf(form.color)));
 const statusIndex = computed(() => Math.max(0, STATUS_VALUES.indexOf(form.status)));
 
 // 隐藏底部导航栏
@@ -239,9 +239,25 @@ const previewImage = (index) => {
 // 监听下拉选择变化
 const onTypeChange = (e) => { form.category = CATEGORY_VALUES[e.detail.value]; };
 const onLocationTagChange = (e) => { form.locationTag = LOCATION_TAGS[e.detail.value]; };
-const onTimeChange = (e) => { form.time = e.detail.value; };
-const onColorChange = (e) => { form.color = COLOR_LIST[e.detail.value]; };
 const onStatusChange = (e) => { form.status = STATUS_VALUES[e.detail.value]; };
+
+// 时间占位提示：寻物=丢失时间，招领=发现时间
+const timePlaceholder = computed(() => form.category === 'lost' ? '请选择丢失时间' : '请选择发现时间');
+
+// form.time 存为 "YYYY-MM-DD HH:mm"；拆分出日期/时间供两个 picker 回显
+const datePart = computed(() => (form.time || '').split(' ')[0]);
+const timePart = computed(() => (form.time || '').split(' ')[1] || '');
+
+// 选日期：保留已选的时间部分，拼成 "YYYY-MM-DD HH:mm"
+const onDateChange = (e) => {
+  const d = e.detail.value;
+  form.time = timePart.value ? d + ' ' + timePart.value : d;
+};
+// 选具体时间：保留已选的日期部分
+const onClockChange = (e) => {
+  const t = e.detail.value;
+  form.time = datePart.value ? datePart.value + ' ' + t : t;
+};
 
 // 复位表单为「新建发布」状态（提交成功 / 取消时调用）
 const resetForm = () => {
@@ -441,6 +457,13 @@ onShow(async () => {
   box-sizing: border-box;
   width: 100%;
   min-height: 88rpx;
+}
+
+/* 时间字段：日期 + 时间两个选择框上下排列 */
+.time-pickers {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
 .detail-textarea {
