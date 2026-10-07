@@ -193,7 +193,7 @@ const displayItems = computed(() => {
   }
 
   // 排序：
-  //  1) 已寻回/已招领（completed）一律沉到底部
+  //  1) 已找到/已归还（completed）一律沉到底部
   //  2) 名称里命中关键词越多越靠前（精准找物）
   //  3) 其余按最新发布优先
   list.sort((a, b) => {

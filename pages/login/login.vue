@@ -27,6 +27,8 @@
     <view class="form-card">
       <!-- 账号 -->
       <view class="field">
+        <text class="field-label">账号</text>
+        <input class="field-input" v-model="form.username" placeholder="请输入账号" placeholder-class="ph" />
       </view>
 
       <!-- 密码 -->
@@ -85,6 +87,7 @@ const form = reactive({
 
 // 客户端校验：返回错误文案或空串
 function validate() {
+  if (!form.username.trim()) return '请输入账号'
   if (!form.password) return '请输入密码'
   if (form.password.length < 6) return '密码至少 6 位'
   if (!isLogin.value) {

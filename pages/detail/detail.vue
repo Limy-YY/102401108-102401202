@@ -73,8 +73,13 @@
 
     <!-- 底部操作：仅发布者本人可见 -->
     <view class="bottom-actions" v-if="isMine">
+      <!-- 进行中：可一键标记完成；已完成：显示完成状态提示，不再可标记 -->
+      <button v-if="item.status === 'ongoing'" class="action-btn complete" @click="handleComplete">
+        {{ item.category === 'lost' ? '标记为已找到' : '标记为已归还' }}
+      </button>
+      <view v-else class="done-note">✓ 已{{ item.category === 'lost' ? '找到' : '归还' }}，感谢你的更新</view>
       <button class="action-btn delete" @click="handleDelete">删除</button>
-      <button class="action-btn primary" @click="goEdit">编辑</button>
+      <button class="action-btn edit" @click="goEdit">编辑</button>
     </view>
   </view>
 </template>
@@ -82,7 +87,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getItemById, deleteItem } from '@/utils/storage.js'
+import { getItemById, deleteItem, updateItem } from '@/utils/storage.js'
 import { formatCategory, formatStatus, formatTime } from '@/utils/format.js'
 import ProfileCard from '@/components/ProfileCard.vue'
 import { getCurrentUser } from '@/utils/auth.js'
@@ -90,7 +95,7 @@ import { backOrHome } from '@/utils/nav.js'
 
 const item = ref(null)
 const itemId = ref(null)
-// 发布者个人名片：从后端详情接口返回的 publisher 取（多用户：显示真正的发布者）
+// 发布者个人名片：从本地账号库按 publisherId 查得（多用户：显示真正的发布者）
 const publisher = ref({ nickname: '', wechat: '', phone: '', avatar: '' })
 
 // 是否本人发布：仅本人可编辑/删除
@@ -160,6 +165,26 @@ const handleDelete = () => {
           }, 800)
         } catch (e) {
           uni.showToast({ title: e.message || '删除失败', icon: 'none' })
+        }
+      }
+    }
+  })
+}
+
+// 标记为已找到 / 已归还：把状态改为 completed，避免他人重复询问和无效联系
+const handleComplete = () => {
+  const doneLabel = item.value.category === 'lost' ? '已找到' : '已归还'
+  uni.showModal({
+    title: '确认更新',
+    content: `确认将此物品标记为「${doneLabel}」吗？标记后其他人仍可浏览，但会看到已完成状态。`,
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await updateItem(itemId.value, { status: 'completed' })
+          item.value.status = 'completed'
+          uni.showToast({ title: '已标记' + doneLabel, icon: 'success' })
+        } catch (e) {
+          uni.showToast({ title: e.message || '更新失败', icon: 'none' })
         }
       }
     }
@@ -310,11 +335,30 @@ const handleDelete = () => {
 
 .action-btn.delete {
   background: #F5F5F5;
+  color: #E64340;
+}
+
+.action-btn.edit {
+  background: #F5F5F5;
   color: #666;
 }
 
-.action-btn.primary {
+.action-btn.complete {
   background: #FF7A33;
   color: #FFF;
+}
+
+/* 已完成提示文案（替代标记按钮） */
+.done-note {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: #52A46A;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

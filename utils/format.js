@@ -23,10 +23,10 @@ export function parseCategory(cat) {
 }
 
 // 组合状态标签（卡片角标 / 详情用）：
-//   进行中：寻物中 / 招领中；已完成：已寻回 / 已招领
+//   进行中：寻物中 / 招领中；已完成：已找到 / 已归还
 export function formatStatusText(category, status) {
   if (status === 'completed') {
-    return category === 'lost' ? '已寻回' : '已招领'
+    return category === 'lost' ? '已找到' : '已归还'
   }
   return category === 'lost' ? '寻物中' : '招领中'
 }

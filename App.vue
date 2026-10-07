@@ -1,9 +1,12 @@
 <script setup>
 import { onLaunch } from '@dcloudio/uni-app'
 import { isLoggedIn } from '@/utils/auth.js'
+import { ensureSeedData } from '@/utils/seed.js'
 
 // 启动登录守卫：未登录（第一次进入或退出登录后）一律跳到登录/注册页
 onLaunch(() => {
+  // 首次进入播种演示账号与演示物品（无后端，数据存 localStorage）
+  ensureSeedData()
   if (!isLoggedIn()) {
     uni.reLaunch({ url: '/pages/login/login' })
   }
