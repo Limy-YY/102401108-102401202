@@ -12,27 +12,11 @@
     <!-- 表单区域 -->
     <view class="form-area">
 
-    <!-- 状态 (仅编辑模式显示，置于最上方更醒目) -->
-    <view class="form-item" v-if="isEdit">
-      <view class="item-label">
-        <text class="label-icon">✅</text>
-        <text>状态</text>
-      </view>
-      <view class="item-content-wrapper">
-        <picker mode="selector" :range="STATUS_OPTIONS" :value="statusIndex" @change="onStatusChange">
-          <view class="input-box">
-            <text :class="{ 'placeholder': form.status === '' }">{{ form.status ? formatStatus(form.status) : '请选择' }}</text>
-            <text class="arrow">›</text>
-          </view>
-        </picker>
-      </view>
-    </view>
-
     <!-- 类型选择 -->
     <view class="form-item">
       <view class="item-label">
         <text class="label-icon">📋</text>
-        <text>类型</text>
+        <text>类型<text class="req-star">*</text></text>
       </view>
       <view class="item-content-wrapper">
         <picker mode="selector" :range="CATEGORY_OPTIONS" :value="typeIndex" @change="onTypeChange">
@@ -48,7 +32,7 @@
     <view class="form-item">
       <view class="item-label">
         <text class="label-icon">📦</text>
-        <text>物品</text>
+        <text>物品<text class="req-star">*</text></text>
       </view>
       <view class="item-content-wrapper">
         <input class="input-box" placeholder="请输入物品名称" v-model="form.itemName" placeholder-class="placeholder" />
@@ -59,7 +43,7 @@
     <view class="form-item">
       <view class="item-label">
         <text class="label-icon">🏫</text>
-        <text>场所</text>
+        <text>场所<text class="req-star">*</text></text>
       </view>
       <view class="item-content-wrapper">
         <picker mode="selector" :range="LOCATION_TAGS" :value="locationTagIndex" @change="onLocationTagChange">
@@ -78,7 +62,7 @@
         <text>位置</text>
       </view>
       <view class="item-content-wrapper">
-        <input class="input-box" placeholder="请输入具体位置，如中东3-305" v-model="form.locationDetail" placeholder-class="placeholder" />
+        <input class="input-box" placeholder="请输入具体位置，如东3-305" v-model="form.locationDetail" placeholder-class="placeholder" />
       </view>
     </view>
 
@@ -86,18 +70,18 @@
     <view class="form-item">
       <view class="item-label">
         <text class="label-icon">🕐</text>
-        <text>时间</text>
+        <text>时间<text class="req-star">*</text></text>
       </view>
       <view class="item-content-wrapper time-pickers">
-        <picker mode="date" :value="datePart" @change="onDateChange">
+        <picker mode="date" :value="dateStr" @change="onDateChange">
           <view class="input-box">
-            <text :class="{ 'placeholder': !datePart }">{{ datePart || timePlaceholder }}</text>
+            <text :class="{ 'placeholder': !dateStr }">{{ dateStr || timePlaceholder }}</text>
             <text class="arrow"></text>
           </view>
         </picker>
-        <picker mode="time" :value="timePart" @change="onClockChange">
+        <picker mode="time" :value="timeStr" @change="onClockChange">
           <view class="input-box">
-            <text :class="{ 'placeholder': !timePart }">{{ timePart || '选择具体时间' }}</text>
+            <text :class="{ 'placeholder': !timeStr }">{{ timeStr || '选择具体时间' }}</text>
             <text class="arrow"></text>
           </view>
         </picker>
@@ -161,8 +145,6 @@
       </view>
     </view>
 
-      <!-- 底部安全占位 -->
-      <view style="height: 60rpx;"></view>
     </view>
   </view>
 </template>
@@ -172,14 +154,14 @@ import { onShow } from '@dcloudio/uni-app';
 import { ref, reactive, computed } from 'vue';
 import { saveItem, updateItem, getItemById } from '@/utils/storage.js';
 import { validateForm } from '@/utils/validator.js';
-import { formatCategory, formatStatus } from '@/utils/format.js';
-import { CATEGORY_OPTIONS, CATEGORY_VALUES, LOCATION_TAGS, STATUS_OPTIONS, STATUS_VALUES } from '@/utils/constants.js';
+import { formatCategory } from '@/utils/format.js';
+import { CATEGORY_OPTIONS, CATEGORY_VALUES, LOCATION_TAGS } from '@/utils/constants.js';
 import { fileToDataURL } from '@/utils/image.js';
 import { backOrHome } from '@/utils/nav.js';
 
 // 本页同时承担「新建发布」和「编辑」两种模式，由 storage 中的 edit_item_id 区分（见 onShow）
 // 表单字段白名单：提交载荷、编辑回填都从这里取，字段增删只维护这一处
-const PAYLOAD_FIELDS = ['category', 'itemName', 'locationTag', 'locationDetail', 'time', 'color', 'images', 'detail', 'status'];
+const PAYLOAD_FIELDS = ['category', 'itemName', 'locationTag', 'locationDetail', 'time', 'color', 'images', 'detail'];
 
 // 空表单工厂：新建 / 复位时生成一份干净表单（images 每次都是新数组）
 const createEmptyForm = () => ({
@@ -190,8 +172,7 @@ const createEmptyForm = () => ({
   time: '',
   color: '',
   images: [],
-  detail: '',
-  status: 'ongoing'
+  detail: ''
 });
 
 const form = reactive(createEmptyForm());
@@ -203,7 +184,6 @@ const editId = ref(null);
 // 让 picker 回显正确选中项：indexOf 未选中时返回 -1，用 Math.max(0, ...) 兜底为 0
 const typeIndex = computed(() => Math.max(0, CATEGORY_VALUES.indexOf(form.category)));
 const locationTagIndex = computed(() => Math.max(0, LOCATION_TAGS.indexOf(form.locationTag)));
-const statusIndex = computed(() => Math.max(0, STATUS_VALUES.indexOf(form.status)));
 
 // 隐藏底部导航栏
 uni.hideTabBar({ animation: false });
@@ -239,29 +219,27 @@ const previewImage = (index) => {
 // 监听下拉选择变化
 const onTypeChange = (e) => { form.category = CATEGORY_VALUES[e.detail.value]; };
 const onLocationTagChange = (e) => { form.locationTag = LOCATION_TAGS[e.detail.value]; };
-const onStatusChange = (e) => { form.status = STATUS_VALUES[e.detail.value]; };
 
 // 时间占位提示：寻物=丢失时间，招领=发现时间
 const timePlaceholder = computed(() => form.category === 'lost' ? '请选择丢失时间' : '请选择发现时间');
 
-// form.time 存为 "YYYY-MM-DD HH:mm"；拆分出日期/时间供两个 picker 回显
-const datePart = computed(() => (form.time || '').split(' ')[0]);
-const timePart = computed(() => (form.time || '').split(' ')[1] || '');
+// 日期与具体时间各自独立存储，避免「先选时间再选日期」时互相覆盖
+const dateStr = ref('');
+const timeStr = ref('');
 
-// 选日期：保留已选的时间部分，拼成 "YYYY-MM-DD HH:mm"
-const onDateChange = (e) => {
-  const d = e.detail.value;
-  form.time = timePart.value ? d + ' ' + timePart.value : d;
+// 只有日期、时间都已选择时才拼装为 "YYYY-MM-DD HH:mm"（两者均必填）
+const syncTime = () => {
+  form.time = (dateStr.value && timeStr.value) ? dateStr.value + ' ' + timeStr.value : '';
 };
-// 选具体时间：保留已选的日期部分
-const onClockChange = (e) => {
-  const t = e.detail.value;
-  form.time = datePart.value ? datePart.value + ' ' + t : t;
-};
+
+const onDateChange = (e) => { dateStr.value = e.detail.value; syncTime(); };
+const onClockChange = (e) => { timeStr.value = e.detail.value; syncTime(); };
 
 // 复位表单为「新建发布」状态（提交成功 / 取消时调用）
 const resetForm = () => {
   Object.assign(form, createEmptyForm());
+  dateStr.value = '';
+  timeStr.value = '';
   isEdit.value = false;
   editId.value = null;
 };
@@ -275,6 +253,16 @@ const handleCancel = () => {
 // 提交表单
 const handleSubmit = async () => {
   if (isSubmitting.value) return;
+
+  // 日期与具体时间均为必填（先单独校验，提示更精确）
+  if (!dateStr.value) {
+    uni.showToast({ title: '请选择日期', icon: 'none' });
+    return;
+  }
+  if (!timeStr.value) {
+    uni.showToast({ title: '请选择具体时间', icon: 'none' });
+    return;
+  }
 
   // 提交前整表校验，未通过则提示第一条错误
   const errors = validateForm(form);
@@ -335,6 +323,10 @@ onShow(async () => {
         PAYLOAD_FIELDS.forEach((f) => {
           form[f] = item[f] == null ? defaults[f] : item[f];
         });
+        // 回填两个时间下拉框的独立状态，避免编辑时时间丢失
+        const parts = (form.time || '').split(' ');
+        dateStr.value = parts[0] || '';
+        timeStr.value = parts[1] || '';
       }
     } catch (e) {}
     return;
@@ -354,6 +346,7 @@ onShow(async () => {
 
 .page-container {
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: #F9F1E6;
@@ -421,7 +414,7 @@ onShow(async () => {
 .item-label {
   font-size: 28rpx;
   color: #333333;
-  width: 120rpx;
+  width: 140rpx;
   flex-shrink: 0;
   display: flex;
   flex-direction: row;
@@ -429,11 +422,19 @@ onShow(async () => {
   justify-content: flex-start;
   gap: 8rpx;
   padding-top: 20rpx;
+  white-space: nowrap;
 }
 
 .label-icon {
   font-size: 32rpx;
   line-height: 1;
+}
+
+/* 必填项红标：inline 保证与标签同行，不换行 */
+.req-star {
+  color: #E64340;
+  margin-left: 4rpx;
+  display: inline;
 }
 
 .item-content-wrapper {
@@ -450,6 +451,8 @@ onShow(async () => {
   border-radius: 16rpx;
   font-size: 30rpx;
   color: #333;
+  -webkit-user-select: text;
+  user-select: text;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -473,6 +476,8 @@ onShow(async () => {
   border-radius: 16rpx;
   font-size: 30rpx;
   color: #333;
+  -webkit-user-select: text;
+  user-select: text;
   min-height: 160rpx;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.02);
   box-sizing: border-box;
@@ -480,7 +485,7 @@ onShow(async () => {
 
 .image-upload-area {
   width: 100%;
-  height: 220rpx;
+  height: 180rpx;
   background-color: #FFFFFF;
   border-radius: 16rpx;
   display: flex;
@@ -604,4 +609,3 @@ onShow(async () => {
 }
 
 </style>
-

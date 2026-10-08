@@ -25,27 +25,28 @@
 
     <!-- 表单卡片 -->
     <view class="form-card">
-      <!-- 账号 -->
+      <!-- 学号 -->
       <view class="field">
-        <text class="field-label">账号</text>
-        <input class="field-input" v-model="form.username" placeholder="请输入账号" placeholder-class="ph" />
+        <text class="field-label">学号<text class="req-star">*</text></text>
+        <input class="field-input" v-model="form.username" placeholder="请输入学号" placeholder-class="ph" @blur="checkDuplicate" />
+        <text class="dup-hint" v-if="!isLogin && dupHint">{{ dupHint }}</text>
       </view>
 
       <!-- 密码 -->
       <view class="field">
-        <text class="field-label">密码</text>
+        <text class="field-label">密码<text class="req-star">*</text></text>
         <input class="field-input" v-model="form.password" password placeholder="请输入密码" placeholder-class="ph" />
       </view>
 
       <!-- 确认密码（仅注册） -->
       <view class="field" v-if="!isLogin">
-        <text class="field-label">确认密码</text>
+        <text class="field-label">确认密码<text class="req-star">*</text></text>
         <input class="field-input" v-model="form.confirm" password placeholder="请再次输入密码" placeholder-class="ph" />
       </view>
 
       <!-- 昵称（仅注册） -->
       <view class="field" v-if="!isLogin">
-        <text class="field-label">昵称</text>
+        <text class="field-label">昵称<text class="req-star">*</text></text>
         <input class="field-input" v-model="form.nickname" placeholder="取个大家能认出的昵称" placeholder-class="ph" />
       </view>
 
@@ -57,8 +58,8 @@
 
       <!-- 手机号（仅注册，必填） -->
       <view class="field" v-if="!isLogin">
-        <text class="field-label">手机号</text>
-        <input class="field-input" v-model="form.phone" type="number" maxlength="11" placeholder="请输入手机号" placeholder-class="ph" />
+        <text class="field-label">手机号<text class="req-star">*</text></text>
+        <input class="field-input" v-model="form.phone" placeholder="请输入手机号" placeholder-class="ph" />
       </view>
 
       <!-- 提交按钮 -->
@@ -70,8 +71,8 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
-import { register, login } from '@/utils/auth.js'
+import { reactive, ref, watch } from 'vue'
+import { register, login, isStudentIdTaken } from '@/utils/auth.js'
 
 const isLogin = ref(true)
 const submitting = ref(false)
@@ -85,16 +86,31 @@ const form = reactive({
   phone: ''
 })
 
+// 注册模式下学号实时查重提示（失焦时校验是否已被注册）
+const dupHint = ref('')
+const checkDuplicate = () => {
+  if (isLogin.value) return
+  const s = form.username.trim()
+  if (!s || !/^\d+$/.test(s)) {
+    dupHint.value = ''
+    return
+  }
+  dupHint.value = isStudentIdTaken(s) ? '该学号已被注册' : ''
+}
+// 学号内容变化时清除查重提示，避免提示残留
+watch(() => form.username, () => { dupHint.value = '' })
+
 // 客户端校验：返回错误文案或空串
 function validate() {
-  if (!form.username.trim()) return '请输入账号'
+  if (!form.username.trim()) return '请输入学号'
   if (!form.password) return '请输入密码'
   if (form.password.length < 6) return '密码至少 6 位'
   if (!isLogin.value) {
+    if (!/^\d+$/.test(form.username.trim())) return '学号必须为纯数字'
     if (form.confirm !== form.password) return '两次输入的密码不一致'
     if (!form.nickname.trim()) return '请输入昵称'
     if (!form.phone.trim()) return '请输入手机号'
-    if (!/^1\d{10}$/.test(form.phone.trim())) return '手机号格式不正确'
+    if (!/^1\d{10}$/.test(form.phone.trim())) return '请输入11位数字'
   }
   return ''
 }
@@ -209,6 +225,21 @@ async function onSubmit() {
   color: #666666;
   display: block;
   margin-bottom: 12rpx;
+}
+
+/* 必填项红标：inline 保证与标签同行，不换行 */
+.req-star {
+  color: #E64340;
+  margin-left: 4rpx;
+  display: inline;
+}
+
+/* 学号查重提示 */
+.dup-hint {
+  display: block;
+  font-size: 22rpx;
+  color: #E64340;
+  margin-top: 8rpx;
 }
 
 .field-input {

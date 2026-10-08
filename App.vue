@@ -49,4 +49,17 @@ html {
 .list-bottom-space {
   height: calc(140rpx + env(safe-area-inset-bottom));
 }
+
+/* uni-app H5 框架默认在 html,body 上设置 user-select: none，
+   导致输入框无法用鼠标拖拽选中文字。这里恢复输入框/文本域的可选能力，
+   支持长按 / 拖拽选择文本。 */
+input,
+textarea,
+uni-input,
+uni-textarea,
+.uni-input-input,
+.uni-textarea-textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
 </style>

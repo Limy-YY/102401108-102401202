@@ -19,6 +19,21 @@ export function isLoggedIn() {
   return !!getToken()
 }
 
+// 学号格式校验：非空 + 纯数字（不限位数）
+export function validateStudentId(id) {
+  const s = String(id || '').trim()
+  if (!s) return '请输入学号'
+  if (!/^\d+$/.test(s)) return '学号必须为纯数字'
+  return ''
+}
+
+// 学号是否已被注册（供注册页实时查重）
+export function isStudentIdTaken(id) {
+  const s = String(id || '').trim()
+  if (!s) return false
+  return readUsers().some(u => u.username === s)
+}
+
 // 缓存登录态：token = userId；USER_KEY 只存对外名片（不含密码）
 function setSession(user) {
   uni.setStorageSync(TOKEN_KEY, user.id)
@@ -61,14 +76,15 @@ export async function register(payload) {
   const password = String(payload.password || '')
   const nickname = String(payload.nickname || '').trim()
 
-  if (!username) throw new Error('请输入账号')
+  const idErr = validateStudentId(username)
+  if (idErr) throw new Error(idErr)
   if (password.length < 6) throw new Error('密码至少 6 位')
   if (!nickname) throw new Error('请输入昵称')
-  if (!/^1\d{10}$/.test(String(payload.phone || '').trim())) throw new Error('请输入正确的手机号')
+  if (!/^1\d{10}$/.test(String(payload.phone || '').trim())) throw new Error('请输入11位数字')
 
   const users = readUsers()
   if (users.some(u => u.username === username)) {
-    throw new Error('该账号已被注册')
+    throw new Error('该学号已被注册')
   }
 
   const user = {
@@ -94,7 +110,7 @@ export async function login(username, password) {
   const users = readUsers()
   const user = users.find(u => u.username === uname)
   if (!user || user.password !== String(password || '')) {
-    throw new Error('账号或密码错误')
+    throw new Error('学号或密码错误')
   }
   setSession(user)
   return publicUser(user)
@@ -104,4 +120,22 @@ export async function login(username, password) {
 export function logout() {
   uni.removeStorageSync(TOKEN_KEY)
   uni.removeStorageSync(USER_KEY)
+}
+
+// 更新当前登录用户资料（昵称 / 微信号 / 手机号 / 头像）。
+// 学号作为登录账号不在此处修改；联系方式与物品解耦，改一次资料后
+// 所有历史发布详情里的联系方式会自动同步（物品只存 publisherId）。
+export async function updateUser(updates) {
+  const me = getCurrentUser()
+  if (!me) throw new Error('未登录')
+  const users = readUsers()
+  const idx = users.findIndex(u => u.id === me.id)
+  if (idx === -1) throw new Error('用户不存在')
+  const fields = ['nickname', 'wechat', 'phone', 'avatar']
+  fields.forEach(f => {
+    if (updates[f] !== undefined) users[idx][f] = updates[f]
+  })
+  writeUsers(users)
+  setSession(users[idx])
+  return publicUser(users[idx])
 }

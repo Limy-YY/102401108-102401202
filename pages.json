@@ -48,6 +48,14 @@
 			}
 		},
 		{
+			"path": "pages/profile-edit/profile-edit",
+			"style": {
+				"navigationBarTitleText": "编辑资料",
+				"navigationBarBackgroundColor": "#F9F1E6",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/modal/modal",
 			"style": {
 				"navigationBarTitleText": "提示",

@@ -5,8 +5,16 @@
       <!-- 顶部占位：避开状态栏/刘海 -->
       <view class="top-space"></view>
 
-      <!-- 个人名片 -->
-      <ProfileCard :userInfo="userInfo" />
+      <!-- 个人名片：可编辑（点击进编辑页），不显示一键复制 -->
+      <ProfileCard :userInfo="userInfo" editable :show-copy="false" @edit="goEditProfile" />
+
+      <!-- 个人中心菜单：退出登录 -->
+      <view class="menu-card">
+        <view class="menu-item" @click="handleLogout">
+          <text class="menu-icon">🚪</text>
+          <text class="menu-text logout-text">退出登录</text>
+        </view>
+      </view>
 
       <!-- 我的发布：通栏标志栏 -->
       <view class="section-bar">
@@ -30,9 +38,6 @@
       <!-- 底部占位：避免最后一张卡片被底部导航栏遮挡 -->
       <view class="list-bottom-space"></view>
     </scroll-view>
-
-    <!-- 退出登录 -->
-    <view class="logout-btn" @click="handleLogout">退出登录</view>
 
     <!-- 底部导航栏（与首页一致） -->
     <BottomNav />
@@ -63,6 +68,11 @@ onPageShow(async () => {
     myItems.value = []
   }
 })
+
+// 编辑资料：跳转到个人资料编辑页
+const goEditProfile = () => {
+  uni.navigateTo({ url: '/pages/profile-edit/profile-edit' })
+}
 
 // 退出登录：清除登录态后回到登录/注册页
 const handleLogout = () => {
@@ -116,6 +126,48 @@ const handleLogout = () => {
   color: #333333;
 }
 
+/* 个人中心菜单卡片：编辑资料 / 退出登录 */
+.menu-card {
+  margin: 30rpx 30rpx 0;
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  height: 100rpx;
+  padding: 0 30rpx;
+}
+
+.menu-icon {
+  font-size: 32rpx;
+  margin-right: 20rpx;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333333;
+}
+
+.menu-text.logout-text {
+  color: #E64340;
+}
+
+.menu-arrow {
+  font-size: 40rpx;
+  color: #CCCCCC;
+}
+
+.menu-divider {
+  height: 1rpx;
+  background-color: #F0F0F0;
+  margin-left: 82rpx;
+}
+
 /* H5 下阻止内容不足/到达边界时回弹（露出背景色） */
 ::v-deep .list-container,
 ::v-deep .list-container .uni-scroll-view,
@@ -123,16 +175,4 @@ const handleLogout = () => {
   overscroll-behavior: none;
 }
 
-/* 退出登录按钮：固定在底部导航上方 */
-.logout-btn {
-  flex-shrink: 0;
-  margin: 20rpx 60rpx 140rpx;
-  height: 80rpx;
-  line-height: 80rpx;
-  text-align: center;
-  background-color: #FFFFFF;
-  color: #E64340;
-  border-radius: 40rpx;
-  font-size: 28rpx;
-}
 </style>

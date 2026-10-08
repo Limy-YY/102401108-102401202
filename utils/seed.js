@@ -3,10 +3,10 @@
 // 让登录页有可用的演示账号、首页广场有可浏览的内容。
 import { USERS_KEY, ITEMS_KEY } from './config.js'
 
-// 演示账号：用户名 demo / 密码 123456，登录页可用它直接体验
+// 演示账号：学号 20240001 / 密码 123456，登录页可用它直接体验
 export const DEMO_USER = {
   id: 'u-demo-1001',
-  username: 'demo',
+  username: '20240001',
   password: '123456',
   nickname: '演示同学',
   wechat: 'demo001',
@@ -28,25 +28,25 @@ function buildSeedItems() {
   return [
     {
       id: now - 1 * day, publisherId: DEMO_USER.id, category: 'lost',
-      itemName: '黑色双肩包', locationTag: '图书馆', locationDetail: '3楼自习区B区',
+      itemName: '双肩包', locationTag: '图书馆', locationDetail: '3楼自习区B区',
       time: mkTime(1 * day), color: '黑色', images: [], detail: '包内有笔记本电脑和两本教材。',
       status: 'ongoing', createTime: now - 1 * day
     },
     {
       id: now - 2 * day, publisherId: DEMO_USER.id, category: 'lost',
-      itemName: '蓝色雨伞', locationTag: '教学楼', locationDetail: '东2-101教室',
+      itemName: '雨伞', locationTag: '教学楼', locationDetail: '东2-101教室',
       time: mkTime(2 * day), color: '蓝色', images: [], detail: '折叠伞，伞柄有挂绳。',
       status: 'ongoing', createTime: now - 2 * day
     },
     {
       id: now - 3 * day, publisherId: DEMO_USER.id, category: 'found',
-      itemName: '白色无线耳机', locationTag: '操场', locationDetail: '跑道边看台',
+      itemName: '无线耳机', locationTag: '操场', locationDetail: '跑道边看台',
       time: mkTime(3 * day), color: '白色', images: [], detail: '左右耳一对，充电盒有刻字。',
       status: 'ongoing', createTime: now - 3 * day
     },
     {
       id: now - 4 * day, publisherId: DEMO_USER.id, category: 'found',
-      itemName: '棕色卡包', locationTag: '食堂', locationDetail: '一食堂一楼取餐台',
+      itemName: '卡包', locationTag: '食堂', locationDetail: '一食堂一楼取餐台',
       time: mkTime(4 * day), color: '棕色', images: [], detail: '内有校园卡和几张票据。',
       status: 'ongoing', createTime: now - 4 * day
     },
@@ -58,7 +58,7 @@ function buildSeedItems() {
     },
     {
       id: now - 6 * day, publisherId: DEMO_USER.id, category: 'found',
-      itemName: '灰色保温杯', locationTag: '宿舍楼', locationDetail: '4号楼一楼值班室',
+      itemName: '保温杯', locationTag: '宿舍楼', locationDetail: '4号楼一楼值班室',
       time: mkTime(6 * day), color: '灰色', images: [], detail: '不锈钢内胆，已交值班室保管。',
       status: 'completed', createTime: now - 6 * day
     }

@@ -167,6 +167,8 @@ const handleSearch = () => {
   font-size: 28rpx;
   color: #333333;
   height: 60rpx;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* 搜索按钮：橙色圆角 */
