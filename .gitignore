@@ -1,12 +1,18 @@
 unpackage/
 .DS_Store
 .hbuilderx/
-node_modules/
-coverage/
 
-# 单元测试相关文件仅在本地运行，不作为产品代码提交
-test/
-vitest.config.js
-package.json
-package-lock.json
-.github/workflows/ci.yml
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+
+# 测试产物
+test-results/
+playwright-report/
+playwright/.cache/
+
+# 日志与临时文件
+*.log
+npm-debug.log*

@@ -52,7 +52,7 @@ const props = defineProps({
   }
 })
 
-// 状态角标文字：寻物中 / 招领中 / 已寻回 / 已招领
+// 状态角标文字：寻物中 / 招领中 / 已找到 / 已归还
 const statusText = computed(() => formatStatusText(props.item.category, props.item.status))
 
 // 根据状态动态切换标签样式类

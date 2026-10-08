@@ -10,10 +10,22 @@
       <view class="info-row">
         <text class="label">微信号：</text>
         <text class="value">{{ userInfo.wechat || '未绑定' }}</text>
+        <!-- 一键复制微信号（仅在已填写时出现） -->
+        <text
+          v-if="userInfo.wechat"
+          class="copy-btn"
+          @click="copy(userInfo.wechat)"
+        >复制</text>
       </view>
       <view class="info-row">
         <text class="label">手机号：</text>
         <text class="value">{{ userInfo.phone || '未绑定' }}</text>
+        <!-- 一键复制手机号 -->
+        <text
+          v-if="userInfo.phone"
+          class="copy-btn"
+          @click="copy(userInfo.phone)"
+        >复制</text>
       </view>
     </view>
   </view>
@@ -32,6 +44,12 @@ const props = defineProps({
     })
   }
 })
+
+// 一键复制联系方式：写入系统剪贴板。
+// H5 端 setClipboardData 成功后会自带“内容已复制”提示，无需再手动 toast。
+const copy = (text) => {
+  uni.setClipboardData({ data: String(text || '') })
+}
 </script>
 
 <style scoped>
@@ -100,5 +118,21 @@ const props = defineProps({
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 一键复制按钮：小号橙色描边胶囊，点击即复制该联系方式 */
+.copy-btn {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  padding: 4rpx 16rpx;
+  font-size: 22rpx;
+  color: #FF7A33;
+  border: 1rpx solid #FF7A33;
+  border-radius: 24rpx;
+  line-height: 1.6;
+}
+
+.copy-btn:active {
+  background-color: #FFF1E8;
 }
 </style>

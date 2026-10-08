@@ -8,6 +8,14 @@
 			}
 		},
 		{
+			"path": "pages/login/login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationBarBackgroundColor": "#F9F1E6",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/search/search",
 			"style": {
 				"navigationBarTitleText": "搜索",

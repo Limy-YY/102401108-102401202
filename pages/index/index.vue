@@ -69,8 +69,12 @@ const isRefreshing = ref(false)
 const rawItems = ref([])
 
 // 页面每次显示时重新加载数据
-onPageShow(() => {
-  rawItems.value = getItems()
+onPageShow(async () => {
+  try {
+    rawItems.value = await getItems()
+  } catch (e) {
+    rawItems.value = []
+  }
 })
 
 // 按当前分类过滤，直接透传原始数据给 ItemCard
@@ -84,11 +88,12 @@ const setCategory = (cat) => {
 
 const onRefresh = () => {
   isRefreshing.value = true
-  rawItems.value = getItems()
-  setTimeout(() => {
+  getItems().then(list => {
+    rawItems.value = list
+  }).catch(() => {}).finally(() => {
     isRefreshing.value = false
     uni.showToast({ title: '刷新成功', icon: 'none' })
-  }, 800)
+  })
 }
 
 const goToSearchPage = () => {

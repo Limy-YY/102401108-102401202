@@ -12,7 +12,7 @@
       />
     </view>
 
-    <!-- 筛选栏：类型 / 时间 / 地点 / 颜色 -->
+    <!-- 筛选栏：类型 / 时间 / 地点 -->
     <view class="filter-bar" :style="{ top: topOffset }">
       <!-- 漏斗图标，纯展示 -->
       <view class="filter-icon-btn">
@@ -41,14 +41,6 @@
         @click="openFilter('location')"
       >
         <text>{{ filters.location || '地点' }}</text>
-        <text class="arrow">▾</text>
-      </view>
-      <view
-        class="filter-item"
-        :class="{ active: activeFilter === 'color' }"
-        @click="openFilter('color')"
-      >
-        <text>{{ filters.color || '颜色' }}</text>
         <text class="arrow">▾</text>
       </view>
     </view>
@@ -101,13 +93,13 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getItems } from '@/utils/storage.js'
 import { parseCategory, parseDate } from '@/utils/format.js'
-import { CATEGORY_OPTIONS, LOCATION_TAGS, COLOR_LIST, TIME_FILTER_DAYS } from '@/utils/constants.js'
+import { CATEGORY_OPTIONS, LOCATION_TAGS, TIME_FILTER_DAYS } from '@/utils/constants.js'
 import SearchBar from '@/components/SearchBar.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
-// --- 数据源：本地存储的全部物品 ---
-const allItems = ref(getItems())
+// --- 数据源：后端广场的全部物品（异步加载）---
+const allItems = ref([])
 
 // --- 搜索相关 ---
 // 输入框当前文字：实时绑定输入框，仅在输入时变化
@@ -116,7 +108,12 @@ const keyword = ref('')
 const appliedKeyword = ref('')
 
 // 读取从首页搜索栏跳转携带的关键词（此时搜索动作已在首页发生，故同步生效）
-onLoad((options) => {
+onLoad(async (options) => {
+  try {
+    allItems.value = await getItems()
+  } catch (e) {
+    allItems.value = []
+  }
   if (options && options.keyword) {
     keyword.value = decodeURIComponent(options.keyword)
     appliedKeyword.value = keyword.value
@@ -129,14 +126,13 @@ const handleSearch = (val) => {
 }
 
 // --- 筛选相关 ---
-const filters = ref({ type: '', time: '', location: '', color: '' })
+const filters = ref({ type: '', time: '', location: '' })
 
-// 各筛选项的可选项列表（分类/场所/颜色与发布页共用同一份常量）
+// 各筛选项的可选项列表（分类/场所与发布页共用同一份常量）
 const filterOptions = {
   type: ['全部', ...CATEGORY_OPTIONS],
   time: ['全部', '一天内', '三天内', '一周内', '两周内', '四周内'],
-  location: ['全部', ...LOCATION_TAGS],
-  color: ['全部', ...COLOR_LIST]
+  location: ['全部', ...LOCATION_TAGS]
 }
 
 const activeFilter = ref(null)
@@ -161,14 +157,18 @@ const selectOption = (option) => {
 const displayItems = computed(() => {
   let list = [...allItems.value]
 
-  // 关键词过滤：匹配物品名称 / 场所 / 具体位置
+  // 关键词：拆成多个词，要求全部命中（更精准）；
+  // 匹配 物品名称 / 场所 / 具体位置 / 颜色 / 细节描述
   const kw = appliedKeyword.value.trim().toLowerCase()
-  if (kw) {
-    list = list.filter(item =>
-      (item.itemName || '').toLowerCase().includes(kw) ||
-      (item.locationTag || '').toLowerCase().includes(kw) ||
-      (item.locationDetail || '').toLowerCase().includes(kw)
-    )
+  const terms = kw ? kw.split(/\s+/).filter(Boolean) : []
+  if (terms.length) {
+    list = list.filter(item => {
+      const hay = [
+        item.itemName, item.locationTag, item.locationDetail,
+        item.color, item.detail
+      ].map(s => (s || '').toLowerCase()).join(' ')
+      return terms.every(t => hay.includes(t))
+    })
   }
 
   // 类型过滤：中文显示 → 英文枚举
@@ -182,11 +182,6 @@ const displayItems = computed(() => {
     list = list.filter(item => item.locationTag === filters.value.location)
   }
 
-  // 颜色过滤：精确匹配
-  if (filters.value.color) {
-    list = list.filter(item => item.color === filters.value.color)
-  }
-
   // 时间过滤：发现时间在 N 天以内
   const days = TIME_FILTER_DAYS[filters.value.time]
   if (days) {
@@ -196,6 +191,27 @@ const displayItems = computed(() => {
       return !isNaN(t) && t >= threshold
     })
   }
+
+  // 排序：
+  //  1) 已找到/已归还（completed）一律沉到底部
+  //  2) 名称里命中关键词越多越靠前（精准找物）
+  //  3) 其余按最新发布优先
+  list.sort((a, b) => {
+    const scoreOf = (item) => {
+      let s = 0
+      if (item.status === 'completed') s += 1000
+      if (terms.length) {
+        const name = (item.itemName || '').toLowerCase()
+        const nameHits = terms.filter(t => name.includes(t)).length
+        s -= nameHits * 10            // 名称命中多 → 靠前
+        if (nameHits === 0) s += 50   // 只在细节/位置命中 → 靠后
+      }
+      return s
+    }
+    const d = scoreOf(a) - scoreOf(b)
+    if (d !== 0) return d
+    return (b.createTime || 0) - (a.createTime || 0)
+  })
 
   return list
 })

@@ -1,15 +1,24 @@
-// 当前用户资料（占位数据）
-// 后续接入真实登录 / 资料编辑后，改为从本地存储读取。
-// 物品本身不存联系人信息，详情页的「个人名片」统一从这里取。
+// 当前登录用户资料：从本地缓存的登录态读取（多用户集中存储版）。
+import { getCurrentUser } from './auth.js'
+
+// 兜底：未登录时返回空资料，避免渲染崩溃（正常流程下登录守卫会拦截）
 const DEFAULT_USER = {
-  id: 'local-user', // 发布者标识：详情页据此判断是否本人发布
+  id: '',
   avatar: '',
-  nickname: '校园用户',
-  wechat: 'campus_2026',
-  phone: '159 1234 5678'
+  nickname: '未登录用户',
+  wechat: '',
+  phone: ''
 }
 
-// 返回一份拷贝，避免各页面共用同一个引用导致意外修改
+// 返回一份拷贝，避免各页面共用引用导致意外修改
 export function getUserInfo() {
-  return { ...DEFAULT_USER }
+  const user = getCurrentUser()
+  if (!user) return { ...DEFAULT_USER }
+  return {
+    id: user.id,
+    avatar: user.avatar || '',
+    nickname: user.nickname || '',
+    wechat: user.wechat || '',
+    phone: user.phone || ''
+  }
 }

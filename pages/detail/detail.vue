@@ -67,14 +67,19 @@
       <!-- 发布者个人名片 -->
       <view class="publisher-section">
         <text class="publisher-title">联系发布者</text>
-        <ProfileCard :userInfo="userInfo" />
+        <ProfileCard :userInfo="publisher" />
       </view>
     </view>
 
     <!-- 底部操作：仅发布者本人可见 -->
     <view class="bottom-actions" v-if="isMine">
+      <!-- 进行中：可一键标记完成；已完成：显示完成状态提示，不再可标记 -->
+      <button v-if="item.status === 'ongoing'" class="action-btn complete" @click="handleComplete">
+        {{ item.category === 'lost' ? '标记为已找到' : '标记为已归还' }}
+      </button>
+      <view v-else class="done-note">✓ 已{{ item.category === 'lost' ? '找到' : '归还' }}，感谢你的更新</view>
       <button class="action-btn delete" @click="handleDelete">删除</button>
-      <button class="action-btn primary" @click="goEdit">编辑</button>
+      <button class="action-btn edit" @click="goEdit">编辑</button>
     </view>
   </view>
 </template>
@@ -82,22 +87,22 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getItemById, deleteItem } from '@/utils/storage.js'
+import { getItemById, deleteItem, updateItem } from '@/utils/storage.js'
 import { formatCategory, formatStatus, formatTime } from '@/utils/format.js'
 import ProfileCard from '@/components/ProfileCard.vue'
-import { getUserInfo } from '@/utils/user.js'
+import { getCurrentUser } from '@/utils/auth.js'
 import { backOrHome } from '@/utils/nav.js'
 
 const item = ref(null)
 const itemId = ref(null)
-// 发布者个人名片（当前为单用户本地数据，取自用户资料）
-const userInfo = getUserInfo()
+// 发布者个人名片：从本地账号库按 publisherId 查得（多用户：显示真正的发布者）
+const publisher = ref({ nickname: '', wechat: '', phone: '', avatar: '' })
 
-// 是否本人发布：仅本人可编辑/删除；老数据无 publisherId 时视为本人（单用户本地兼容）
+// 是否本人发布：仅本人可编辑/删除
 const isMine = computed(() => {
   if (!item.value) return false
-  if (!item.value.publisherId) return true
-  return item.value.publisherId === userInfo.id
+  const me = getCurrentUser()
+  return !!me && item.value.publisherId === me.id
 })
 
 // 图片列表：兼容 images 缺失/为空/含空字符串等旧数据，过滤出有效图片地址
@@ -120,11 +125,17 @@ const previewImage = (index) => {
   })
 }
 
-onLoad((options) => {
+onLoad(async (options) => {
   const id = options && options.id
   if (id) {
     itemId.value = Number(id)
-    item.value = getItemById(itemId.value)
+    try {
+      const res = await getItemById(itemId.value)
+      item.value = res.item
+      publisher.value = res.publisher || { nickname: '', wechat: '', phone: '', avatar: '' }
+    } catch (e) {
+      item.value = null
+    }
   }
 })
 
@@ -144,13 +155,37 @@ const handleDelete = () => {
   uni.showModal({
     title: '确认删除',
     content: '删除后无法恢复，确定要删除吗？',
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        deleteItem(itemId.value)
-        uni.showToast({ title: '已删除', icon: 'success' })
-        setTimeout(() => {
-          uni.navigateBack()
-        }, 800)
+        try {
+          await deleteItem(itemId.value)
+          uni.showToast({ title: '已删除', icon: 'success' })
+          setTimeout(() => {
+            uni.navigateBack()
+          }, 800)
+        } catch (e) {
+          uni.showToast({ title: e.message || '删除失败', icon: 'none' })
+        }
+      }
+    }
+  })
+}
+
+// 标记为已找到 / 已归还：把状态改为 completed，避免他人重复询问和无效联系
+const handleComplete = () => {
+  const doneLabel = item.value.category === 'lost' ? '已找到' : '已归还'
+  uni.showModal({
+    title: '确认更新',
+    content: `确认将此物品标记为「${doneLabel}」吗？标记后其他人仍可浏览，但会看到已完成状态。`,
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await updateItem(itemId.value, { status: 'completed' })
+          item.value.status = 'completed'
+          uni.showToast({ title: '已标记' + doneLabel, icon: 'success' })
+        } catch (e) {
+          uni.showToast({ title: e.message || '更新失败', icon: 'none' })
+        }
       }
     }
   })
@@ -300,11 +335,30 @@ const handleDelete = () => {
 
 .action-btn.delete {
   background: #F5F5F5;
+  color: #E64340;
+}
+
+.action-btn.edit {
+  background: #F5F5F5;
   color: #666;
 }
 
-.action-btn.primary {
+.action-btn.complete {
   background: #FF7A33;
   color: #FFF;
+}
+
+/* 已完成提示文案（替代标记按钮） */
+.done-note {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: #52A46A;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

@@ -82,16 +82,22 @@
       </view>
     </view>
 
-    <!-- 时间 -->
+    <!-- 时间：日期 + 具体时间（精确到分钟） -->
     <view class="form-item">
       <view class="item-label">
         <text class="label-icon">🕐</text>
         <text>时间</text>
       </view>
-      <view class="item-content-wrapper">
-        <picker mode="date" :value="form.time" @change="onTimeChange">
+      <view class="item-content-wrapper time-pickers">
+        <picker mode="date" :value="datePart" @change="onDateChange">
           <view class="input-box">
-            <text :class="{ 'placeholder': form.time === '' }">{{ form.time || '请选择发现时间' }}</text>
+            <text :class="{ 'placeholder': !datePart }">{{ datePart || timePlaceholder }}</text>
+            <text class="arrow"></text>
+          </view>
+        </picker>
+        <picker mode="time" :value="timePart" @change="onClockChange">
+          <view class="input-box">
+            <text :class="{ 'placeholder': !timePart }">{{ timePart || '选择具体时间' }}</text>
             <text class="arrow"></text>
           </view>
         </picker>
@@ -105,12 +111,7 @@
         <text>颜色</text>
       </view>
       <view class="item-content-wrapper">
-        <picker mode="selector" :range="COLOR_LIST" :value="colorIndex" @change="onColorChange">
-          <view class="input-box">
-            <text :class="{ 'placeholder': form.color === '' }">{{ form.color || '请选择' }}</text>
-            <text class="arrow"></text>
-          </view>
-        </picker>
+        <input class="input-box" v-model="form.color" placeholder="请输入物品颜色，如黑色、藏青色" placeholder-class="placeholder" />
       </view>
     </view>
 
@@ -172,7 +173,7 @@ import { ref, reactive, computed } from 'vue';
 import { saveItem, updateItem, getItemById } from '@/utils/storage.js';
 import { validateForm } from '@/utils/validator.js';
 import { formatCategory, formatStatus } from '@/utils/format.js';
-import { CATEGORY_OPTIONS, CATEGORY_VALUES, LOCATION_TAGS, COLOR_LIST, STATUS_OPTIONS, STATUS_VALUES } from '@/utils/constants.js';
+import { CATEGORY_OPTIONS, CATEGORY_VALUES, LOCATION_TAGS, STATUS_OPTIONS, STATUS_VALUES } from '@/utils/constants.js';
 import { fileToDataURL } from '@/utils/image.js';
 import { backOrHome } from '@/utils/nav.js';
 
@@ -202,7 +203,6 @@ const editId = ref(null);
 // 让 picker 回显正确选中项：indexOf 未选中时返回 -1，用 Math.max(0, ...) 兜底为 0
 const typeIndex = computed(() => Math.max(0, CATEGORY_VALUES.indexOf(form.category)));
 const locationTagIndex = computed(() => Math.max(0, LOCATION_TAGS.indexOf(form.locationTag)));
-const colorIndex = computed(() => Math.max(0, COLOR_LIST.indexOf(form.color)));
 const statusIndex = computed(() => Math.max(0, STATUS_VALUES.indexOf(form.status)));
 
 // 隐藏底部导航栏
@@ -239,9 +239,25 @@ const previewImage = (index) => {
 // 监听下拉选择变化
 const onTypeChange = (e) => { form.category = CATEGORY_VALUES[e.detail.value]; };
 const onLocationTagChange = (e) => { form.locationTag = LOCATION_TAGS[e.detail.value]; };
-const onTimeChange = (e) => { form.time = e.detail.value; };
-const onColorChange = (e) => { form.color = COLOR_LIST[e.detail.value]; };
 const onStatusChange = (e) => { form.status = STATUS_VALUES[e.detail.value]; };
+
+// 时间占位提示：寻物=丢失时间，招领=发现时间
+const timePlaceholder = computed(() => form.category === 'lost' ? '请选择丢失时间' : '请选择发现时间');
+
+// form.time 存为 "YYYY-MM-DD HH:mm"；拆分出日期/时间供两个 picker 回显
+const datePart = computed(() => (form.time || '').split(' ')[0]);
+const timePart = computed(() => (form.time || '').split(' ')[1] || '');
+
+// 选日期：保留已选的时间部分，拼成 "YYYY-MM-DD HH:mm"
+const onDateChange = (e) => {
+  const d = e.detail.value;
+  form.time = timePart.value ? d + ' ' + timePart.value : d;
+};
+// 选具体时间：保留已选的日期部分
+const onClockChange = (e) => {
+  const t = e.detail.value;
+  form.time = datePart.value ? datePart.value + ' ' + t : t;
+};
 
 // 复位表单为「新建发布」状态（提交成功 / 取消时调用）
 const resetForm = () => {
@@ -257,7 +273,7 @@ const handleCancel = () => {
 };
 
 // 提交表单
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (isSubmitting.value) return;
 
   // 提交前整表校验，未通过则提示第一条错误
@@ -273,14 +289,19 @@ const handleSubmit = () => {
   const payload = {};
   PAYLOAD_FIELDS.forEach((f) => { payload[f] = form[f]; });
 
-  let savedItem;
   // 先记录本次是「修改」还是「发布」，resetForm 会把 isEdit 复位，故需提前保存
   const wasEdit = isEdit.value;
-  if (wasEdit) {
-    updateItem(editId.value, payload);
-    savedItem = getItemById(editId.value);
-  } else {
-    savedItem = saveItem(payload);
+  let savedItem;
+  try {
+    if (wasEdit) {
+      savedItem = await updateItem(editId.value, payload);
+    } else {
+      savedItem = await saveItem(payload);
+    }
+  } catch (e) {
+    isSubmitting.value = false;
+    uni.showToast({ title: e.message || '提交失败', icon: 'none' });
+    return;
   }
 
   // 提交成功即结束本次编辑/发布，复位表单，避免下次回到本页仍残留旧内容
@@ -297,22 +318,25 @@ const handleSubmit = () => {
 
 // 页面显示时：区分「新建」和「编辑」。
 // 注意：不要在这里无脑清空表单，否则编辑中途切换 Tab 再切回会丢失已填内容。
-onShow(() => {
+onShow(async () => {
   // 编辑模式：从详情页「编辑」进入时通过 storage 传递待编辑 id。
   // publish 是 tabBar 页，switchTab 无法携带 query，故用 storage 中转后立即清除。
   const rawEditId = uni.getStorageSync('edit_item_id');
   if (rawEditId) {
     uni.removeStorageSync('edit_item_id');
-    const item = getItemById(Number(rawEditId));
-    if (item) {
-      isEdit.value = true;
-      editId.value = item.id;
-      // 只回填白名单字段，缺失字段用空表单默认值兜底（status 默认 ongoing、images 默认 []）
-      const defaults = createEmptyForm();
-      PAYLOAD_FIELDS.forEach((f) => {
-        form[f] = item[f] == null ? defaults[f] : item[f];
-      });
-    }
+    try {
+      const res = await getItemById(Number(rawEditId));
+      const item = res.item;
+      if (item) {
+        isEdit.value = true;
+        editId.value = item.id;
+        // 只回填白名单字段，缺失字段用空表单默认值兜底（status 默认 ongoing、images 默认 []）
+        const defaults = createEmptyForm();
+        PAYLOAD_FIELDS.forEach((f) => {
+          form[f] = item[f] == null ? defaults[f] : item[f];
+        });
+      }
+    } catch (e) {}
     return;
   }
 
@@ -433,6 +457,13 @@ onShow(() => {
   box-sizing: border-box;
   width: 100%;
   min-height: 88rpx;
+}
+
+/* 时间字段：日期 + 时间两个选择框上下排列 */
+.time-pickers {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
 .detail-textarea {
