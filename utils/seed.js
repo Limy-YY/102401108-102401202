@@ -3,11 +3,11 @@
 // 让登录页有可用的演示账号、首页广场有可浏览的内容。
 import { USERS_KEY, ITEMS_KEY } from './config.js'
 
-// 演示账号：学号 20240001 / 密码 123456，登录页可用它直接体验
+// 演示账号：学号 20240001 / 密码 campus2024，登录页可用它直接体验
 export const DEMO_USER = {
   id: 'u-demo-1001',
   username: '20240001',
-  password: '123456',
+  password: 'campus2024',
   nickname: '演示同学',
   wechat: 'demo001',
   phone: '13800000001',
@@ -28,7 +28,7 @@ function buildSeedItems() {
   return [
     {
       id: now - 1 * day, publisherId: DEMO_USER.id, category: 'lost',
-      itemName: '双肩包', locationTag: '图书馆', locationDetail: '3楼自习区B区',
+      itemName: '双肩包', locationTag: '图书馆', locationDetail: '1楼自习区B区',
       time: mkTime(1 * day), color: '黑色', images: [], detail: '包内有笔记本电脑和两本教材。',
       status: 'ongoing', createTime: now - 1 * day
     },
@@ -40,19 +40,19 @@ function buildSeedItems() {
     },
     {
       id: now - 3 * day, publisherId: DEMO_USER.id, category: 'found',
-      itemName: '无线耳机', locationTag: '操场', locationDetail: '跑道边看台',
+      itemName: '无线耳机', locationTag: '操场', locationDetail: '第一田径场跑道边看台',
       time: mkTime(3 * day), color: '白色', images: [], detail: '左右耳一对，充电盒有刻字。',
       status: 'ongoing', createTime: now - 3 * day
     },
     {
       id: now - 4 * day, publisherId: DEMO_USER.id, category: 'found',
-      itemName: '卡包', locationTag: '食堂', locationDetail: '一食堂一楼取餐台',
+      itemName: '卡包', locationTag: '食堂', locationDetail: '紫荆园奶茶店柜台旁',
       time: mkTime(4 * day), color: '棕色', images: [], detail: '内有校园卡和几张票据。',
       status: 'ongoing', createTime: now - 4 * day
     },
     {
       id: now - 5 * day, publisherId: DEMO_USER.id, category: 'lost',
-      itemName: '学生证', locationTag: '实验楼', locationDetail: 'A座2楼走廊',
+      itemName: '学生证', locationTag: '实验楼', locationDetail: '物理实验中心2楼走廊',
       time: mkTime(5 * day), color: '其他', images: [], detail: '贴有照片，已挂失补办中。',
       status: 'completed', createTime: now - 5 * day
     },
@@ -81,10 +81,19 @@ function writeList(key, list) {
   } catch (e) { /* 存储满等异常：静默跳过，不影响主流程 */ }
 }
 
-// 播种：账号库为空则写演示账号，物品库为空则写演示物品
+// 播种：账号库为空则写演示账号，物品库为空则写演示物品。
+// 顺带迁移旧演示账号密码（123456 已被浏览器标记为数据泄露），让老数据也能用新密码登录。
 export function ensureSeedData() {
-  if (readList(USERS_KEY).length === 0) {
-    writeList(USERS_KEY, [DEMO_USER])
+  let users = readList(USERS_KEY)
+  if (users.length === 0) {
+    users = [DEMO_USER]
+    writeList(USERS_KEY, users)
+  } else {
+    const demo = users.find((u) => u.username === DEMO_USER.username)
+    if (demo && demo.password === '123456') {
+      demo.password = DEMO_USER.password
+      writeList(USERS_KEY, users)
+    }
   }
   if (readList(ITEMS_KEY).length === 0) {
     writeList(ITEMS_KEY, buildSeedItems())

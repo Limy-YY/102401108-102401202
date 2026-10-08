@@ -35,7 +35,8 @@
         <text>物品<text class="req-star">*</text></text>
       </view>
       <view class="item-content-wrapper">
-        <input class="input-box" placeholder="请输入物品名称" v-model="form.itemName" placeholder-class="placeholder" />
+        <input class="input-box" placeholder="请输入物品名称" v-model="form.itemName" placeholder-class="placeholder" maxlength="20" @keydown="guardItemName" />
+        <view class="detail-count">{{ form.itemName.length }}/20</view>
       </view>
     </view>
 
@@ -62,7 +63,8 @@
         <text>位置</text>
       </view>
       <view class="item-content-wrapper">
-        <input class="input-box" placeholder="请输入具体位置，如东3-305" v-model="form.locationDetail" placeholder-class="placeholder" />
+        <input class="input-box" placeholder="请输入具体位置，如东3-305" v-model="form.locationDetail" placeholder-class="placeholder" maxlength="20" @keydown="guardLocationDetail" />
+        <view class="detail-count">{{ form.locationDetail.length }}/20</view>
       </view>
     </view>
 
@@ -95,7 +97,8 @@
         <text>颜色</text>
       </view>
       <view class="item-content-wrapper">
-        <input class="input-box" v-model="form.color" placeholder="请输入物品颜色，如黑色、藏青色" placeholder-class="placeholder" />
+        <input class="input-box" v-model="form.color" placeholder="请输入物品颜色，如黑色、藏青色" placeholder-class="placeholder" maxlength="20" @keydown="guardColor" />
+        <view class="detail-count">{{ form.color.length }}/20</view>
       </view>
     </view>
 
@@ -158,6 +161,7 @@ import { formatCategory } from '@/utils/format.js';
 import { CATEGORY_OPTIONS, CATEGORY_VALUES, LOCATION_TAGS } from '@/utils/constants.js';
 import { fileToDataURL } from '@/utils/image.js';
 import { backOrHome } from '@/utils/nav.js';
+import { makeLengthGuard } from '@/utils/inputRules.js';
 
 // 本页同时承担「新建发布」和「编辑」两种模式，由 storage 中的 edit_item_id 区分（见 onShow）
 // 表单字段白名单：提交载荷、编辑回填都从这里取，字段增删只维护这一处
@@ -234,6 +238,11 @@ const syncTime = () => {
 
 const onDateChange = (e) => { dateStr.value = e.detail.value; syncTime(); };
 const onClockChange = (e) => { timeStr.value = e.detail.value; syncTime(); };
+
+// 自由文本字段长度限制：超过 20 字时在按键层拦截并提示
+const guardItemName = makeLengthGuard(20, '物品名称最多 20 字', () => form.itemName.length)
+const guardLocationDetail = makeLengthGuard(20, '具体位置最多 20 字', () => form.locationDetail.length)
+const guardColor = makeLengthGuard(20, '颜色最多 20 字', () => form.color.length)
 
 // 复位表单为「新建发布」状态（提交成功 / 取消时调用）
 const resetForm = () => {
@@ -350,6 +359,7 @@ onShow(async () => {
   display: flex;
   flex-direction: column;
   background-color: #F9F1E6;
+  overflow: hidden;
 }
 
 .top-nav {
@@ -398,9 +408,11 @@ onShow(async () => {
 .form-area {
   flex: 1;
   height: 0;
+  min-height: 0;
   overflow-y: auto;
   padding: 40rpx 40rpx 0 40rpx;
   box-sizing: border-box;
+  overscroll-behavior: none;
 }
 
 .form-item {
@@ -409,6 +421,11 @@ onShow(async () => {
   margin-bottom: 30rpx;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* 最后一项不留底部间距：避免表单内容能显示完却仍可下滑一点距离 */
+.form-item:last-child {
+  margin-bottom: 0;
 }
 
 .item-label {

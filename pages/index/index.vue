@@ -4,7 +4,7 @@
     <view class="page-header">
       <SearchBar @search="goToSearchPage" />
 
-      <!-- 分类 Tab 切换：寻物 / 招领 -->
+      <!-- 分类 Tab 切换：全部 / 寻物 / 招领 -->
       <view class="category-tabs">
         <view
           class="tab"
@@ -59,17 +59,21 @@ import ItemCard from '@/components/ItemCard.vue'
 import BottomNav from '@/components/BottomNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
-// 分类 Tab：显示中文、存储英文枚举
+// 分类 Tab：显示中文、存储英文枚举（「全部」用空串，表示不筛选）
 const tabs = [
+  { label: '全部', value: '' },
   { label: '寻物', value: 'lost' },
   { label: '招领', value: 'found' }
 ]
-const currentCategory = ref('lost')
+const currentCategory = ref('')
 const isRefreshing = ref(false)
 const rawItems = ref([])
 
 // 页面每次显示时重新加载数据
 onPageShow(async () => {
+  // 隐藏 uni-app 原生 tabBar（已用自定义 BottomNav 替代）。
+  // 原生 tabBar 会在页面底部预留 50px，把页面容器（100dvh）顶出可视区，导致整页可滚动。
+  uni.hideTabBar({ animation: false })
   try {
     rawItems.value = await getItems()
   } catch (e) {
@@ -77,8 +81,9 @@ onPageShow(async () => {
   }
 })
 
-// 按当前分类过滤，直接透传原始数据给 ItemCard
+// 按当前分类过滤（「全部」为空串，直接返回全部），透传原始数据给 ItemCard
 const displayList = computed(() => {
+  if (!currentCategory.value) return rawItems.value
   return rawItems.value.filter(item => item.category === currentCategory.value)
 })
 

@@ -21,7 +21,7 @@
           :focus="isFocused"
           class="search-input"
           v-model="keyword"
-          placeholder="搜索物品名称"
+          placeholder="请输入关键词，如物品名称、颜色等"
           placeholder-style="color: #B3B3B3; font-size: 28rpx;"
           confirm-type="search"
           @confirm="handleSearch"

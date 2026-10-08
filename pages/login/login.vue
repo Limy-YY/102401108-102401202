@@ -28,38 +28,38 @@
       <!-- 学号 -->
       <view class="field">
         <text class="field-label">学号<text class="req-star">*</text></text>
-        <input class="field-input" v-model="form.username" placeholder="请输入学号" placeholder-class="ph" @blur="checkDuplicate" />
+        <input class="field-input" :value="form.username" maxlength="20" :placeholder="isLogin ? '请输入学号' : '请输入学号（20位以内的数字）'" placeholder-class="ph" @input="onUsernameInput" @keydown="onUsernameKeydown" @blur="checkDuplicate" />
         <text class="dup-hint" v-if="!isLogin && dupHint">{{ dupHint }}</text>
       </view>
 
       <!-- 密码 -->
       <view class="field">
         <text class="field-label">密码<text class="req-star">*</text></text>
-        <input class="field-input" v-model="form.password" password placeholder="请输入密码" placeholder-class="ph" />
+        <input class="field-input" :value="form.password" password maxlength="16" :placeholder="isLogin ? '请输入密码' : '请输入密码（6-16位字母、数字或符号）'" placeholder-class="ph" @input="onPasswordInput" @keydown="onPasswordKeydown" />
       </view>
 
       <!-- 确认密码（仅注册） -->
       <view class="field" v-if="!isLogin">
         <text class="field-label">确认密码<text class="req-star">*</text></text>
-        <input class="field-input" v-model="form.confirm" password placeholder="请再次输入密码" placeholder-class="ph" />
+        <input class="field-input" :value="form.confirm" password maxlength="16" placeholder="请再次输入密码" placeholder-class="ph" @input="onConfirmInput" @keydown="onConfirmKeydown" />
       </view>
 
       <!-- 昵称（仅注册） -->
       <view class="field" v-if="!isLogin">
         <text class="field-label">昵称<text class="req-star">*</text></text>
-        <input class="field-input" v-model="form.nickname" placeholder="取个大家能认出的昵称" placeholder-class="ph" />
+        <input class="field-input" :value="form.nickname" maxlength="20" placeholder="取个大家能认出的昵称" placeholder-class="ph" @input="onNicknameInput" @keydown="onNicknameKeydown" />
       </view>
 
       <!-- 微信号（仅注册，选填） -->
       <view class="field" v-if="!isLogin">
         <text class="field-label">微信号</text>
-        <input class="field-input" v-model="form.wechat" placeholder="选填，方便失主联系你" placeholder-class="ph" />
+        <input class="field-input" :value="form.wechat" maxlength="20" placeholder="选填，方便失主联系你" placeholder-class="ph" @input="onWechatInput" @keydown="onWechatKeydown" />
       </view>
 
       <!-- 手机号（仅注册，必填） -->
       <view class="field" v-if="!isLogin">
         <text class="field-label">手机号<text class="req-star">*</text></text>
-        <input class="field-input" v-model="form.phone" placeholder="请输入手机号" placeholder-class="ph" />
+        <input class="field-input" :value="form.phone" maxlength="11" placeholder="请输入手机号" placeholder-class="ph" @input="onPhoneInput" @keydown="onPhoneKeydown" />
       </view>
 
       <!-- 提交按钮 -->
@@ -71,8 +71,9 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref } from 'vue'
 import { register, login, isStudentIdTaken } from '@/utils/auth.js'
+import { willExceedLength } from '@/utils/inputRules.js'
 
 const isLogin = ref(true)
 const submitting = ref(false)
@@ -97,20 +98,156 @@ const checkDuplicate = () => {
   }
   dupHint.value = isStudentIdTaken(s) ? '该学号已被注册' : ''
 }
-// 学号内容变化时清除查重提示，避免提示残留
-watch(() => form.username, () => { dupHint.value = '' })
+// 按键拦截：单个可打印字符若非法则直接阻止录入，光标不移动。
+// 空格等非法字符在按键层就被拒绝，不进入输入框，也就不会先显示成圆点再被删掉。
+const onUsernameKeydown = (e) => {
+  const key = e.key || ''
+  if (key.length !== 1) return
+  if (!/\d/.test(key)) {
+    e.preventDefault()
+    uni.showToast({ title: '请输入数字', icon: 'none' })
+    return
+  }
+  if (willExceedLength(e, 20, form.username.length)) {
+    e.preventDefault()
+    uni.showToast({ title: '学号最长不超过 20 位', icon: 'none' })
+  }
+}
+const onPasswordKeydown = (e) => {
+  const key = e.key || ''
+  if (key.length !== 1) return
+  if (!/[!-~]/.test(key)) {
+    e.preventDefault()
+    uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
+    return
+  }
+  if (willExceedLength(e, 16, form.password.length)) {
+    e.preventDefault()
+    uni.showToast({ title: '密码最长不超过 16 位', icon: 'none' })
+  }
+}
+// 确认密码：与密码相同的拦截规则，但按确认密码自身的长度判断
+const onConfirmKeydown = (e) => {
+  const key = e.key || ''
+  if (key.length !== 1) return
+  if (!/[!-~]/.test(key)) {
+    e.preventDefault()
+    uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
+    return
+  }
+  if (willExceedLength(e, 16, form.confirm.length)) {
+    e.preventDefault()
+    uni.showToast({ title: '密码最长不超过 16 位', icon: 'none' })
+  }
+}
 
-// 客户端校验：返回错误文案或空串
+// 学号输入：在 @input 里即时过滤为纯数字、最长 20 位。
+// 非法字符（字母/符号等）被直接剔除、不进入模型，并给出提示。
+const onUsernameInput = (e) => {
+  dupHint.value = ''
+  const raw = e.detail.value || ''
+  const clean = raw.replace(/\D/g, '').slice(0, 20)
+  if (clean !== raw) uni.showToast({ title: '请输入数字', icon: 'none' })
+  form.username = clean
+}
+
+// 密码输入：作为 keydown 拦截的兜底，过滤粘贴/自动填充等未经按键路径进入的非法字符。
+const onPasswordInput = (e) => {
+  const raw = e.detail.value || ''
+  const clean = raw.replace(/[^!-~]/g, '').slice(0, 16)
+  if (clean !== raw) uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
+  form.password = clean
+}
+
+// 确认密码输入：与密码相同的过滤规则
+const onConfirmInput = (e) => {
+  const raw = e.detail.value || ''
+  const clean = raw.replace(/[^!-~]/g, '').slice(0, 16)
+  if (clean !== raw) uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
+  form.confirm = clean
+}
+
+// 手机号：仅数字、最长 11 位；按键层拦截非法字符 + 输入兜底过滤
+const onPhoneKeydown = (e) => {
+  const key = e.key || ''
+  if (key.length !== 1) return
+  if (!/\d/.test(key)) {
+    e.preventDefault()
+    uni.showToast({ title: '请输入数字', icon: 'none' })
+    return
+  }
+  if (willExceedLength(e, 11, form.phone.length)) {
+    e.preventDefault()
+    uni.showToast({ title: '手机号最长不超过 11 位', icon: 'none' })
+  }
+}
+const onPhoneInput = (e) => {
+  const raw = e.detail.value || ''
+  const clean = raw.replace(/\D/g, '').slice(0, 11)
+  if (clean !== raw) uni.showToast({ title: '请输入数字', icon: 'none' })
+  form.phone = clean
+}
+
+// 微信号：字母、数字、下划线、短横线，最长 20 位
+const onWechatKeydown = (e) => {
+  const key = e.key || ''
+  if (key.length !== 1) return
+  if (!/[A-Za-z0-9_-]/.test(key)) {
+    e.preventDefault()
+    uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
+    return
+  }
+  if (willExceedLength(e, 20, form.wechat.length)) {
+    e.preventDefault()
+    uni.showToast({ title: '微信号最长不超过 20 位', icon: 'none' })
+  }
+}
+const onWechatInput = (e) => {
+  const raw = e.detail.value || ''
+  const clean = raw.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20)
+  if (clean !== raw) uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
+  form.wechat = clean
+}
+
+// 昵称：不能以空格开头，最长 20 位
+const onNicknameKeydown = (e) => {
+  const key = e.key || ''
+  if (key.length !== 1) return
+  if (key === ' ' && !String(form.nickname || '').trim()) {
+    e.preventDefault()
+    uni.showToast({ title: '昵称不能以空格开头', icon: 'none' })
+    return
+  }
+  if (willExceedLength(e, 20, form.nickname.length)) {
+    e.preventDefault()
+    uni.showToast({ title: '昵称最长不超过 20 个字', icon: 'none' })
+  }
+}
+const onNicknameInput = (e) => {
+  const raw = e.detail.value || ''
+  const clean = raw.replace(/^\s+/, '').slice(0, 20)
+  if (clean !== raw) {
+    uni.showToast({ title: /^\s/.test(raw) ? '昵称不能以空格开头' : '昵称最长 20 个字', icon: 'none' })
+  }
+  form.nickname = clean
+}
+
+// 客户端校验：返回友好错误文案或空串
+// 学号：20 位以内数字；密码：6~16 位字母、数字、符号（ASCII 可打印字符）
 function validate() {
-  if (!form.username.trim()) return '请输入学号'
-  if (!form.password) return '请输入密码'
-  if (form.password.length < 6) return '密码至少 6 位'
+  const username = form.username.trim()
+  if (!username) return '学号不能为空'
+  if (username.length > 20 || !/^\d+$/.test(username)) return '学号请输入20位以内的数字'
+  if (!form.password) return '密码不能为空'
+  if (form.password.length < 6 || form.password.length > 16 || !/^[!-~]+$/.test(form.password)) {
+    return '密码请输入6-16位字母、数字或符号'
+  }
   if (!isLogin.value) {
-    if (!/^\d+$/.test(form.username.trim())) return '学号必须为纯数字'
+    if (!form.confirm.trim()) return '请进行密码确认'
     if (form.confirm !== form.password) return '两次输入的密码不一致'
-    if (!form.nickname.trim()) return '请输入昵称'
-    if (!form.phone.trim()) return '请输入手机号'
-    if (!/^1\d{10}$/.test(form.phone.trim())) return '请输入11位数字'
+    if (!form.nickname.trim()) return '昵称不能为空'
+    if (!form.phone.trim()) return '手机号不能为空'
+    if (!/^1\d{10}$/.test(form.phone.trim())) return '手机号请输入11位数字'
   }
   return ''
 }
@@ -158,27 +295,28 @@ async function onSubmit() {
 }
 
 .top-space {
-  height: calc(120rpx + env(safe-area-inset-top));
+  height: calc(40rpx + env(safe-area-inset-top));
 }
 
 .brand {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 50rpx;
+  margin-bottom: 32rpx;
 }
 
 .logo {
   width: 140rpx;
   height: 140rpx;
   margin-bottom: 20rpx;
+  margin-top: 30rpx;
 }
 
 .app-name {
   font-size: 40rpx;
   font-weight: bold;
   color: #333333;
-  margin-bottom: 12rpx;
+  margin-bottom: 8rpx;
 }
 
 .slogan {
@@ -191,7 +329,7 @@ async function onSubmit() {
   background-color: #FFFFFF;
   border-radius: 16rpx;
   padding: 8rpx;
-  margin-bottom: 30rpx;
+  margin-bottom: 24rpx;
 }
 
 .mode-tab {
@@ -212,12 +350,12 @@ async function onSubmit() {
 .form-card {
   background-color: #FFFFFF;
   border-radius: 20rpx;
-  padding: 40rpx 30rpx;
+  padding: 32rpx 30rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .field {
-  margin-bottom: 30rpx;
+  margin-bottom: 22rpx;
 }
 
 .field-label {
@@ -255,7 +393,7 @@ async function onSubmit() {
 }
 
 .submit-btn {
-  margin-top: 20rpx;
+  margin-top: 12rpx;
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;

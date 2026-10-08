@@ -61,6 +61,9 @@ const myItems = ref([])
 
 // 页面每次显示时重新加载「我的发布」与最新资料
 onPageShow(async () => {
+  // 隐藏 uni-app 原生 tabBar（已用自定义 BottomNav 替代）。
+  // 原生 tabBar 会在页面底部预留 50px，把页面容器（100dvh）顶出可视区，导致整页可滚动。
+  uni.hideTabBar({ animation: false })
   userInfo.value = getUserInfo()
   try {
     myItems.value = await getMyItems()

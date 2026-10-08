@@ -3,7 +3,7 @@
     <!-- 顶部导航 -->
     <view class="top-nav">
       <view class="back-btn" @click="goBack">‹</view>
-      <text class="title">{{ formatCategory(item.category) }}详情</text>
+      <text class="title">{{ item ? formatCategory(item.category) : '' }}详情</text>
     </view>
 
     <!-- 内容区 -->
@@ -221,6 +221,7 @@ const handleReopen = () => {
   display: flex;
   flex-direction: column;
   background-color: #F9F1E6;
+  overflow: hidden;
 }
 
 .top-nav {
@@ -252,8 +253,13 @@ const handleReopen = () => {
 
 .content {
   flex: 1;
+  height: 0;
+  min-height: 0;
   overflow-y: auto;
-  padding: 30rpx;
+  /* 底部不留 padding：末项下方多余空白会导致内容能显示完却仍可下滑一点距离 */
+  padding: 30rpx 30rpx 0;
+  box-sizing: border-box;
+  overscroll-behavior: none;
 }
 
 .image-section {
@@ -325,11 +331,13 @@ const handleReopen = () => {
   line-height: 1.6;
 }
 
-/* 发布者个人名片：负外边距抵消内容区 padding，使名片与信息列表对齐 */
+/* 发布者个人名片：负外边距抵消内容区 padding，使名片与信息列表对齐；
+   底部负外边距抵消名片自身的 margin-bottom，避免末项之后残留多余空白导致仍可下滑 */
 .publisher-section {
   margin-top: 30rpx;
   margin-left: -30rpx;
   margin-right: -30rpx;
+  margin-bottom: -30rpx;
 }
 
 .publisher-title {

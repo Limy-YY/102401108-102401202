@@ -22,19 +22,19 @@
       <!-- 昵称 -->
       <view class="form-item">
         <text class="item-label">昵称<text class="req-star">*</text></text>
-        <input class="input-box" v-model="form.nickname" placeholder="请输入昵称" placeholder-class="ph" />
+        <input class="input-box" :value="form.nickname" maxlength="20" placeholder="请输入昵称" placeholder-class="ph" @input="onNicknameInput" @keydown="onNicknameKeydown" />
       </view>
 
       <!-- 微信号 -->
       <view class="form-item">
         <text class="item-label">微信号</text>
-        <input class="input-box" v-model="form.wechat" placeholder="选填，方便失主联系你" placeholder-class="ph" />
+        <input class="input-box" :value="form.wechat" maxlength="20" placeholder="选填，方便失主联系你" placeholder-class="ph" @input="onWechatInput" @keydown="onWechatKeydown" />
       </view>
 
       <!-- 手机号 -->
       <view class="form-item">
         <text class="item-label">手机号<text class="req-star">*</text></text>
-        <input class="input-box" v-model="form.phone" placeholder="请输入手机号" placeholder-class="ph" />
+        <input class="input-box" :value="form.phone" maxlength="11" placeholder="请输入手机号" placeholder-class="ph" @input="onPhoneInput" @keydown="onPhoneKeydown" />
       </view>
     </view>
 
@@ -48,6 +48,7 @@ import { reactive, ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getUserInfo } from '@/utils/user.js'
 import { updateUser } from '@/utils/auth.js'
+import { willExceedLength } from '@/utils/inputRules.js'
 import AvatarCropper from '@/components/AvatarCropper.vue'
 import { backOrHome } from '@/utils/nav.js'
 
@@ -89,6 +90,71 @@ const onCropConfirm = (dataUrl) => {
 }
 
 const goBack = () => backOrHome()
+
+// 手机号：仅数字、最长 11 位；按键层拦截非法字符 + 输入兜底过滤
+const onPhoneKeydown = (e) => {
+  const key = e.key || ''
+  if (key.length !== 1) return
+  if (!/\d/.test(key)) {
+    e.preventDefault()
+    uni.showToast({ title: '请输入数字', icon: 'none' })
+    return
+  }
+  if (willExceedLength(e, 11, form.phone.length)) {
+    e.preventDefault()
+    uni.showToast({ title: '手机号最长不超过 11 位', icon: 'none' })
+  }
+}
+const onPhoneInput = (e) => {
+  const raw = e.detail.value || ''
+  const clean = raw.replace(/\D/g, '').slice(0, 11)
+  if (clean !== raw) uni.showToast({ title: '请输入数字', icon: 'none' })
+  form.phone = clean
+}
+
+// 微信号：字母、数字、下划线、短横线，最长 20 位
+const onWechatKeydown = (e) => {
+  const key = e.key || ''
+  if (key.length !== 1) return
+  if (!/[A-Za-z0-9_-]/.test(key)) {
+    e.preventDefault()
+    uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
+    return
+  }
+  if (willExceedLength(e, 20, form.wechat.length)) {
+    e.preventDefault()
+    uni.showToast({ title: '微信号最长不超过 20 位', icon: 'none' })
+  }
+}
+const onWechatInput = (e) => {
+  const raw = e.detail.value || ''
+  const clean = raw.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20)
+  if (clean !== raw) uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
+  form.wechat = clean
+}
+
+// 昵称：不能以空格开头，最长 20 位
+const onNicknameKeydown = (e) => {
+  const key = e.key || ''
+  if (key.length !== 1) return
+  if (key === ' ' && !String(form.nickname || '').trim()) {
+    e.preventDefault()
+    uni.showToast({ title: '昵称不能以空格开头', icon: 'none' })
+    return
+  }
+  if (willExceedLength(e, 20, form.nickname.length)) {
+    e.preventDefault()
+    uni.showToast({ title: '昵称最长不超过 20 个字', icon: 'none' })
+  }
+}
+const onNicknameInput = (e) => {
+  const raw = e.detail.value || ''
+  const clean = raw.replace(/^\s+/, '').slice(0, 20)
+  if (clean !== raw) {
+    uni.showToast({ title: /^\s/.test(raw) ? '昵称不能以空格开头' : '昵称最长 20 个字', icon: 'none' })
+  }
+  form.nickname = clean
+}
 
 // 保存：校验后写入本地并刷新缓存
 const handleSave = async () => {
