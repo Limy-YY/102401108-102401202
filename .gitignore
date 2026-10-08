@@ -16,3 +16,9 @@ playwright/.cache/
 # 日志与临时文件
 *.log
 npm-debug.log*
+
+# IDE 配置
+.idea/
+
+# 临时文件
+gitinfo.txt
