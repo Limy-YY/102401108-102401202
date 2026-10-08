@@ -2,7 +2,7 @@
   <view class="index-page">
     <!-- 固定头部：搜索栏 + 分类 Tab（不参与滚动） -->
     <view class="page-header">
-      <SearchBar @search="goToSearchPage" />
+      <SearchBar v-model="searchKeyword" @search="goToSearchPage" />
 
       <!-- 分类 Tab 切换：全部 / 寻物 / 招领 -->
       <view class="category-tabs">
@@ -68,12 +68,16 @@ const tabs = [
 const currentCategory = ref('')
 const isRefreshing = ref(false)
 const rawItems = ref([])
+// 首页搜索栏关键词（双向绑定到 SearchBar，用于从搜索页返回后复位）
+const searchKeyword = ref('')
 
 // 页面每次显示时重新加载数据
 onPageShow(async () => {
   // 隐藏 uni-app 原生 tabBar（已用自定义 BottomNav 替代）。
   // 原生 tabBar 会在页面底部预留 50px，把页面容器（100dvh）顶出可视区，导致整页可滚动。
   uni.hideTabBar({ animation: false })
+  // 从搜索页返回首页后复位搜索栏：首页搜索栏是临时入口，返回时清空避免残留上次关键词
+  searchKeyword.value = ''
   try {
     rawItems.value = await getItems()
   } catch (e) {

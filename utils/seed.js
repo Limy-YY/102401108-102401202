@@ -46,8 +46,8 @@ function buildSeedItems() {
     },
     {
       id: now - 4 * day, publisherId: DEMO_USER.id, category: 'found',
-      itemName: '卡包', locationTag: '食堂', locationDetail: '紫荆园奶茶店柜台旁',
-      time: mkTime(4 * day), color: '棕色', images: [], detail: '内有校园卡和几张票据。',
+      itemName: '保温杯', locationTag: '食堂', locationDetail: '紫荆园面包店旁',
+      time: mkTime(4 * day), color: '棕色', images: ['/static/images/保温杯.png'], detail: '不锈钢内胆，已交值班室保管。',
       status: 'ongoing', createTime: now - 4 * day
     },
     {
@@ -58,8 +58,8 @@ function buildSeedItems() {
     },
     {
       id: now - 6 * day, publisherId: DEMO_USER.id, category: 'found',
-      itemName: '保温杯', locationTag: '宿舍楼', locationDetail: '4号楼一楼值班室',
-      time: mkTime(6 * day), color: '灰色', images: [], detail: '不锈钢内胆，已交值班室保管。',
+      itemName: '宿舍钥匙', locationTag: '宿舍楼', locationDetail: '4号楼一楼走廊',
+      time: mkTime(6 * day), color: '灰色', images: ['/static/images/宿舍钥匙.png'], detail: '已经交付给宿管阿姨，等待失主认领。',
       status: 'completed', createTime: now - 6 * day
     }
   ]
