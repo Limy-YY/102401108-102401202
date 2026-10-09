@@ -14,6 +14,15 @@ playwright-report/
 playwright/.cache/
 coverage/
 
+# 测试源码与配置（仅本地保留，不作为产品代码提交）
+test/
+e2e/
+vitest.config.js
+vitest.config.mjs
+playwright.config.mjs
+utils/package.json
+test.backup/
+
 # 日志与临时文件
 *.log
 npm-debug.log*
