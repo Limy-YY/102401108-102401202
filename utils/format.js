@@ -69,3 +69,28 @@ export function parseDate(str) {
   const mi = m[5] === undefined ? 0 : Number(m[5])
   return new Date(y, mo - 1, d, h, mi).getTime()
 }
+
+// ========== 发布页时间上限（发现/丢失时间不得晚于当前时刻） ==========
+
+const pad2 = (n) => String(n).padStart(2, '0')
+
+// 当前本地日期字符串 'YYYY-MM-DD'（零填充，字典序即时间序）
+export function todayStr(now = new Date()) {
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`
+}
+
+// 当前本地时间字符串 'HH:mm'（零填充）
+export function nowTimeStr(now = new Date()) {
+  return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`
+}
+
+// 所选日期是否晚于今天（发布日）。日期/时间均为零填充字符串，直接按字典序比较。
+export function isDateAfterToday(dateStr, now = new Date()) {
+  return String(dateStr || '') > todayStr(now)
+}
+
+// 所选时间是否晚于当前时刻（仅当所选日期为今天时才需要拦截）。
+export function isTimeAfterNow(dateStr, timeStr, now = new Date()) {
+  if (String(dateStr || '') !== todayStr(now)) return false
+  return String(timeStr || '') > nowTimeStr(now)
+}

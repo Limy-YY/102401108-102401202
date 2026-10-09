@@ -160,7 +160,7 @@ import { onShow } from '@dcloudio/uni-app';
 import { ref, reactive, computed } from 'vue';
 import { saveItem, updateItem, getItemById } from '@/utils/storage.js';
 import { validateForm } from '@/utils/validator.js';
-import { formatCategory, parseDate } from '@/utils/format.js';
+import { formatCategory, parseDate, todayStr, nowTimeStr, isDateAfterToday, isTimeAfterNow } from '@/utils/format.js';
 import { CATEGORY_OPTIONS, CATEGORY_VALUES, LOCATION_TAGS } from '@/utils/constants.js';
 import { fileToDataURL } from '@/utils/image.js';
 import { backOrHome, getStatusBarHeight } from '@/utils/nav.js';
@@ -239,17 +239,9 @@ const timeStr = ref('');
 // 发现/丢失时间不能晚于「现在」（= 发布时刻）。
 // uni-app H5 的 picker 对 time 模式的 start/end 完全不生效（自定义分支忽略上下限），
 // date 模式也仅在桌面端原生 input 生效，故在 @change 里自行拦截，保证移动端同样兜底。
-const pad2 = (n) => String(n).padStart(2, '0')
-const nowDateStr = () => {
-  const d = new Date()
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-}
-const nowTimeStr = () => {
-  const d = new Date()
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
-}
+// 判定逻辑抽到 utils/format.js 的纯函数（todayStr / nowTimeStr / isDateAfterToday / isTimeAfterNow），便于单测。
 // 日期上限：桌面端原生 date 输入生效（移动端由 onDateChange 兜底）
-const today = nowDateStr()
+const today = todayStr()
 
 // 只有日期、时间都已选择时才拼装为 "YYYY-MM-DD HH:mm"（两者均必填）
 const syncTime = () => {
@@ -258,15 +250,14 @@ const syncTime = () => {
 
 const onDateChange = (e) => {
   const v = e.detail.value;
-  const todayStr = nowDateStr();
   // 拦截未来日期（移动端 picker 的 end 不生效，这里兜底）
-  if (v > todayStr) {
+  if (isDateAfterToday(v)) {
     uni.showToast({ title: '日期不能晚于今天', icon: 'none' });
     return;
   }
   dateStr.value = v;
   // 选到「今天」时，若已选时间晚于当前时刻则清空重选
-  if (v === todayStr && timeStr.value > nowTimeStr()) {
+  if (v === todayStr() && timeStr.value > nowTimeStr()) {
     timeStr.value = '';
   }
   syncTime();
@@ -274,7 +265,7 @@ const onDateChange = (e) => {
 const onClockChange = (e) => {
   const v = e.detail.value;
   // 日期为今天时，时间不能晚于当前时刻（picker 的 end 对 time 无效，这里兜底）
-  if (dateStr.value === nowDateStr() && v > nowTimeStr()) {
+  if (isTimeAfterNow(dateStr.value, v)) {
     uni.showToast({ title: '时间不能晚于当前时间', icon: 'none' });
     return;
   }
