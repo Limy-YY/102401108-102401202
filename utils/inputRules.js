@@ -22,3 +22,31 @@ export function makeLengthGuard(max, message, getLength) {
     }
   }
 }
+
+// ===== 输入过滤（粘贴 / 自动填充兜底）：同步剔除非法字符 =====
+// 这些纯函数被登录/注册、编辑资料页的 @input 复用，集中定义便于统一测试与维护。
+
+// 手机号：仅保留数字，截断到 11 位
+export function sanitizePhone(raw) {
+  return String(raw || '').replace(/\D/g, '').slice(0, 11)
+}
+
+// 微信号：仅保留字母、数字、下划线、短横线，截断到 20 位
+export function sanitizeWechat(raw) {
+  return String(raw || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20)
+}
+
+// 昵称：去除开头空白（空格等），截断到 20 位
+export function sanitizeNickname(raw) {
+  return String(raw || '').replace(/^\s+/, '').slice(0, 20)
+}
+
+// 密码：仅保留 ASCII 可打印字符（字母/数字/符号，不含空格），截断到 16 位
+export function sanitizePassword(raw) {
+  return String(raw || '').replace(/[^!-~]/g, '').slice(0, 16)
+}
+
+// 学号：仅保留数字，截断到 20 位
+export function sanitizeUsername(raw) {
+  return String(raw || '').replace(/\D/g, '').slice(0, 20)
+}

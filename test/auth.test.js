@@ -13,7 +13,7 @@ import { installUni } from './helpers/uni-mock.js'
 import { USERS_KEY } from '../utils/config.js'
 
 const validUser = {
-  username: 'alice',
+  username: '20240099',
   password: 'secret1',
   nickname: '爱丽丝',
   wechat: 'alice_wx',
@@ -25,14 +25,11 @@ describe('auth 注册/登录/会话', () => {
   beforeEach(() => { uni = installUni() })
 
   test('TC15 注册非法输入：各校验判定分别抛出对应错误', async () => {
-    await assert.rejects(
-      () => register({ ...validUser, username: '' }), /请输入账号/)
-    await assert.rejects(
-      () => register({ ...validUser, password: '123' }), /密码至少 6 位/)
-    await assert.rejects(
-      () => register({ ...validUser, nickname: '  ' }), /请输入昵称/)
-    await assert.rejects(
-      () => register({ ...validUser, phone: '123' }), /请输入正确的手机号/)
+    await assert.rejects(() => register({ ...validUser, username: '' }), /请输入学号/)
+    await assert.rejects(() => register({ ...validUser, username: 'alice' }), /学号必须为纯数字/)
+    await assert.rejects(() => register({ ...validUser, password: '123' }), /密码至少 6 位/)
+    await assert.rejects(() => register({ ...validUser, nickname: '  ' }), /请输入昵称/)
+    await assert.rejects(() => register({ ...validUser, phone: '123' }), /请输入11位数字/)
   })
 
   test('TC16 注册重复账号：命中查重判定，抛出已被注册', async () => {
@@ -53,16 +50,16 @@ describe('auth 注册/登录/会话', () => {
   })
 
   test('TC18 登录：账号不存在/密码错误走失败分支，正确则建立会话', async () => {
-    await assert.rejects(() => login('nobody', 'whatever'), /账号或密码错误/)
-    await assert.rejects(() => login('demo', 'wrongpw'), /账号或密码错误/)
-    const user = await login('demo', '123456')
+    await assert.rejects(() => login('nobody', 'whatever'), /学号或密码错误/)
+    await assert.rejects(() => login('20240001', 'wrongpw'), /学号或密码错误/)
+    const user = await login('20240001', 'campus2024')
     assert.equal(user.nickname, '演示同学')   // 名片不含 username/password，按名片字段断言
     assert.equal(user.password, undefined)
     assert.equal(isLoggedIn(), true)
   })
 
   test('TC19 退出登录：清除 token 与用户名片', async () => {
-    await login('demo', '123456')
+    await login('20240001', 'campus2024')
     assert.equal(isLoggedIn(), true)
     logout()
     assert.equal(getToken(), '')

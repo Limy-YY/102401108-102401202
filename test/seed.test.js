@@ -1,7 +1,7 @@
-// seed 单元测试 —— 白盒：判定覆盖（空/非空两条路径）
+// seed 单元测试 —— 白盒：判定覆盖（空/非空两条路径 + 密码迁移）
 import { describe, test, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { ensureSeedData } from '../utils/seed.js'
+import { ensureSeedData, DEMO_USER } from '../utils/seed.js'
 import { installUni } from './helpers/uni-mock.js'
 import { USERS_KEY, ITEMS_KEY } from '../utils/config.js'
 
@@ -14,7 +14,8 @@ describe('seed 演示数据播种', () => {
     const users = uni.getStorageSync(USERS_KEY)
     const items = uni.getStorageSync(ITEMS_KEY)
     assert.equal(users.length, 1)
-    assert.equal(users[0].username, 'demo')
+    assert.equal(users[0].username, DEMO_USER.username)
+    assert.equal(users[0].password, DEMO_USER.password)
     assert.ok(items.length >= 6)
     assert.ok(items.some(i => i.category === 'lost'))
     assert.ok(items.some(i => i.category === 'found'))
@@ -29,8 +30,16 @@ describe('seed 演示数据播种', () => {
     assert.equal(uni.getStorageSync(USERS_KEY)[0].id, 'custom')
   })
 
+  test('TC14b 旧演示账号密码迁移：123456 自动升级为 campus2024', () => {
+    uni.setStorageSync(USERS_KEY, [{ username: DEMO_USER.username, password: '123456', nickname: '旧演示' }])
+    ensureSeedData()
+    const users = uni.getStorageSync(USERS_KEY)
+    assert.equal(users.length, 1)
+    assert.equal(users[0].password, DEMO_USER.password)
+    assert.equal(users[0].nickname, '旧演示')   // 只改密码，不动其他字段
+  })
+
   test('TC15 存储写入抛错（如配额满）：被捕获且不崩溃', () => {
-    // setStorageSync 一律抛错，模拟 localStorage 配额超限
     globalThis.uni = {
       getStorageSync: () => '',
       setStorageSync: () => { throw new Error('quota exceeded') }

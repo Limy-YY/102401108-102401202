@@ -48,7 +48,7 @@ import { reactive, ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getUserInfo } from '@/utils/user.js'
 import { updateUser } from '@/utils/auth.js'
-import { willExceedLength } from '@/utils/inputRules.js'
+import { willExceedLength, sanitizePhone, sanitizeWechat, sanitizeNickname } from '@/utils/inputRules.js'
 import AvatarCropper from '@/components/AvatarCropper.vue'
 import { backOrHome } from '@/utils/nav.js'
 
@@ -107,7 +107,7 @@ const onPhoneKeydown = (e) => {
 }
 const onPhoneInput = (e) => {
   const raw = e.detail.value || ''
-  const clean = raw.replace(/\D/g, '').slice(0, 11)
+  const clean = sanitizePhone(raw)
   if (clean !== raw) uni.showToast({ title: '请输入数字', icon: 'none' })
   form.phone = clean
 }
@@ -128,7 +128,7 @@ const onWechatKeydown = (e) => {
 }
 const onWechatInput = (e) => {
   const raw = e.detail.value || ''
-  const clean = raw.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20)
+  const clean = sanitizeWechat(raw)
   if (clean !== raw) uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
   form.wechat = clean
 }
@@ -149,7 +149,7 @@ const onNicknameKeydown = (e) => {
 }
 const onNicknameInput = (e) => {
   const raw = e.detail.value || ''
-  const clean = raw.replace(/^\s+/, '').slice(0, 20)
+  const clean = sanitizeNickname(raw)
   if (clean !== raw) {
     uni.showToast({ title: /^\s/.test(raw) ? '昵称不能以空格开头' : '昵称最长 20 个字', icon: 'none' })
   }

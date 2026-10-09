@@ -73,7 +73,14 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { register, login, isStudentIdTaken } from '@/utils/auth.js'
-import { willExceedLength } from '@/utils/inputRules.js'
+import {
+  willExceedLength,
+  sanitizeUsername,
+  sanitizePassword,
+  sanitizePhone,
+  sanitizeWechat,
+  sanitizeNickname
+} from '@/utils/inputRules.js'
 
 const isLogin = ref(true)
 const submitting = ref(false)
@@ -146,7 +153,7 @@ const onConfirmKeydown = (e) => {
 const onUsernameInput = (e) => {
   dupHint.value = ''
   const raw = e.detail.value || ''
-  const clean = raw.replace(/\D/g, '').slice(0, 20)
+  const clean = sanitizeUsername(raw)
   if (clean !== raw) uni.showToast({ title: '请输入数字', icon: 'none' })
   form.username = clean
 }
@@ -154,7 +161,7 @@ const onUsernameInput = (e) => {
 // 密码输入：作为 keydown 拦截的兜底，过滤粘贴/自动填充等未经按键路径进入的非法字符。
 const onPasswordInput = (e) => {
   const raw = e.detail.value || ''
-  const clean = raw.replace(/[^!-~]/g, '').slice(0, 16)
+  const clean = sanitizePassword(raw)
   if (clean !== raw) uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
   form.password = clean
 }
@@ -162,7 +169,7 @@ const onPasswordInput = (e) => {
 // 确认密码输入：与密码相同的过滤规则
 const onConfirmInput = (e) => {
   const raw = e.detail.value || ''
-  const clean = raw.replace(/[^!-~]/g, '').slice(0, 16)
+  const clean = sanitizePassword(raw)
   if (clean !== raw) uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
   form.confirm = clean
 }
@@ -183,7 +190,7 @@ const onPhoneKeydown = (e) => {
 }
 const onPhoneInput = (e) => {
   const raw = e.detail.value || ''
-  const clean = raw.replace(/\D/g, '').slice(0, 11)
+  const clean = sanitizePhone(raw)
   if (clean !== raw) uni.showToast({ title: '请输入数字', icon: 'none' })
   form.phone = clean
 }
@@ -204,7 +211,7 @@ const onWechatKeydown = (e) => {
 }
 const onWechatInput = (e) => {
   const raw = e.detail.value || ''
-  const clean = raw.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20)
+  const clean = sanitizeWechat(raw)
   if (clean !== raw) uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
   form.wechat = clean
 }
@@ -225,7 +232,7 @@ const onNicknameKeydown = (e) => {
 }
 const onNicknameInput = (e) => {
   const raw = e.detail.value || ''
-  const clean = raw.replace(/^\s+/, '').slice(0, 20)
+  const clean = sanitizeNickname(raw)
   if (clean !== raw) {
     uni.showToast({ title: /^\s/.test(raw) ? '昵称不能以空格开头' : '昵称最长 20 个字', icon: 'none' })
   }
