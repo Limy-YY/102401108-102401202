@@ -46,7 +46,7 @@ function buildSeedItems() {
     },
     {
       id: now - 4 * day, publisherId: DEMO_USER.id, category: 'found',
-      itemName: '保温杯', locationTag: '食堂', locationDetail: '紫荆园面包店旁',
+      itemName: '保温杯', locationTag: '食堂', locationDetail: '紫荆园餐厅水果店旁',
       time: mkTime(4 * day), color: '棕色', images: ['/static/images/thermos.png'], detail: '不锈钢内胆，已交值班室保管。',
       status: 'ongoing', createTime: now - 4 * day
     },

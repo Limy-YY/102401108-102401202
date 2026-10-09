@@ -1,5 +1,8 @@
 <template>
   <view class="page-container">
+    <!-- 状态栏占位：自定义导航下移，避开手机顶部状态栏（时间/电量/信号） -->
+    <view class="status-bar-space" :style="statusBarHeight ? { height: statusBarHeight + 'px' } : null"></view>
+
     <!-- 顶部导航 -->
     <view class="top-nav">
       <view class="back-btn" @click="goBack">‹</view>
@@ -93,10 +96,13 @@ import { getItemById, deleteItem, updateItem } from '@/utils/storage.js'
 import { formatCategory, formatStatus, formatTime } from '@/utils/format.js'
 import ProfileCard from '@/components/ProfileCard.vue'
 import { getCurrentUser } from '@/utils/auth.js'
-import { backOrHome } from '@/utils/nav.js'
+import { backOrHome, getStatusBarHeight } from '@/utils/nav.js'
 
 const item = ref(null)
 const itemId = ref(null)
+
+// 状态栏高度：自定义导航栏下移，避开手机顶部状态栏（H5 下为 0，由 CSS env() 兜底）
+const statusBarHeight = getStatusBarHeight()
 // 发布者个人名片：从本地账号库按 publisherId 查得（多用户：显示真正的发布者）
 const publisher = ref({ nickname: '', wechat: '', phone: '', avatar: '' })
 
@@ -222,6 +228,13 @@ const handleReopen = () => {
   flex-direction: column;
   background-color: #F9F1E6;
   overflow: hidden;
+}
+
+/* 状态栏占位：白色背景与顶部导航栏连成一体，高度由 env()（iOS 刘海）或 statusBarHeight（App）决定 */
+.status-bar-space {
+  flex-shrink: 0;
+  height: env(safe-area-inset-top);
+  background-color: #FFFFFF;
 }
 
 .top-nav {

@@ -38,6 +38,8 @@ const goDetail = () => {
 }
 
 const goBack = () => {
+  // 标记首页需复位：回到首页后重置到「全部」Tab 并刷新，而不是停留在上次浏览的分类
+  uni.setStorageSync('home_reset', true)
   uni.switchTab({ url: '/pages/index/index' })
 }
 

@@ -1,5 +1,8 @@
 <template>
   <view class="page-container">
+    <!-- 状态栏占位：自定义导航下移，避开手机顶部状态栏（时间/电量/信号） -->
+    <view class="status-bar-space" :style="statusBarHeight ? { height: statusBarHeight + 'px' } : null"></view>
+
     <!-- 顶部导航栏 -->
     <view class="top-nav">
       <text class="close-btn" @click="handleCancel">×</text>
@@ -35,7 +38,7 @@
         <text>物品<text class="req-star">*</text></text>
       </view>
       <view class="item-content-wrapper">
-        <input class="input-box" placeholder="请输入物品名称" v-model="form.itemName" placeholder-class="placeholder" maxlength="20" @keydown="guardItemName" />
+        <input class="input-box" placeholder="请输入物品名称" v-model="form.itemName" maxlength="20" placeholder-class="placeholder" />
         <view class="detail-count">{{ form.itemName.length }}/20</view>
       </view>
     </view>
@@ -63,7 +66,7 @@
         <text>位置</text>
       </view>
       <view class="item-content-wrapper">
-        <input class="input-box" placeholder="请输入具体位置，如东3-305" v-model="form.locationDetail" placeholder-class="placeholder" maxlength="20" @keydown="guardLocationDetail" />
+        <input class="input-box" placeholder="请输入具体位置，如东3-305" v-model="form.locationDetail" maxlength="20" placeholder-class="placeholder" />
         <view class="detail-count">{{ form.locationDetail.length }}/20</view>
       </view>
     </view>
@@ -75,7 +78,7 @@
         <text>时间<text class="req-star">*</text></text>
       </view>
       <view class="item-content-wrapper time-pickers">
-        <picker mode="date" :value="dateStr" @change="onDateChange">
+        <picker mode="date" :value="dateStr" :end="today" @change="onDateChange">
           <view class="input-box">
             <text :class="{ 'placeholder': !dateStr }">{{ dateStr || timePlaceholder }}</text>
             <text class="arrow"></text>
@@ -97,7 +100,7 @@
         <text>颜色</text>
       </view>
       <view class="item-content-wrapper">
-        <input class="input-box" v-model="form.color" placeholder="请输入物品颜色，如黑色、藏青色" placeholder-class="placeholder" maxlength="20" @keydown="guardColor" />
+        <input class="input-box" v-model="form.color" maxlength="20" placeholder="请输入物品颜色，如黑色、藏青色" placeholder-class="placeholder" />
         <view class="detail-count">{{ form.color.length }}/20</view>
       </view>
     </view>
@@ -157,11 +160,10 @@ import { onShow } from '@dcloudio/uni-app';
 import { ref, reactive, computed } from 'vue';
 import { saveItem, updateItem, getItemById } from '@/utils/storage.js';
 import { validateForm } from '@/utils/validator.js';
-import { formatCategory } from '@/utils/format.js';
+import { formatCategory, parseDate } from '@/utils/format.js';
 import { CATEGORY_OPTIONS, CATEGORY_VALUES, LOCATION_TAGS } from '@/utils/constants.js';
 import { fileToDataURL } from '@/utils/image.js';
-import { backOrHome } from '@/utils/nav.js';
-import { makeLengthGuard } from '@/utils/inputRules.js';
+import { backOrHome, getStatusBarHeight } from '@/utils/nav.js';
 
 // 本页同时承担「新建发布」和「编辑」两种模式，由 storage 中的 edit_item_id 区分（见 onShow）
 // 表单字段白名单：提交载荷、编辑回填都从这里取，字段增删只维护这一处
@@ -184,6 +186,9 @@ const form = reactive(createEmptyForm());
 const isSubmitting = ref(false);
 const isEdit = ref(false);
 const editId = ref(null);
+
+// 状态栏高度：自定义导航栏下移，避开手机顶部状态栏（H5 下为 0，由 CSS env() 兜底）
+const statusBarHeight = getStatusBarHeight();
 
 // 让 picker 回显正确选中项：indexOf 未选中时返回 -1，用 Math.max(0, ...) 兜底为 0
 const typeIndex = computed(() => Math.max(0, CATEGORY_VALUES.indexOf(form.category)));
@@ -231,18 +236,51 @@ const timePlaceholder = computed(() => form.category === 'lost' ? '请选择丢�
 const dateStr = ref('');
 const timeStr = ref('');
 
+// 发现/丢失时间不能晚于「现在」（= 发布时刻）。
+// uni-app H5 的 picker 对 time 模式的 start/end 完全不生效（自定义分支忽略上下限），
+// date 模式也仅在桌面端原生 input 生效，故在 @change 里自行拦截，保证移动端同样兜底。
+const pad2 = (n) => String(n).padStart(2, '0')
+const nowDateStr = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+const nowTimeStr = () => {
+  const d = new Date()
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+// 日期上限：桌面端原生 date 输入生效（移动端由 onDateChange 兜底）
+const today = nowDateStr()
+
 // 只有日期、时间都已选择时才拼装为 "YYYY-MM-DD HH:mm"（两者均必填）
 const syncTime = () => {
   form.time = (dateStr.value && timeStr.value) ? dateStr.value + ' ' + timeStr.value : '';
 };
 
-const onDateChange = (e) => { dateStr.value = e.detail.value; syncTime(); };
-const onClockChange = (e) => { timeStr.value = e.detail.value; syncTime(); };
-
-// 自由文本字段长度限制：超过 20 字时在按键层拦截并提示
-const guardItemName = makeLengthGuard(20, '物品名称最多 20 字', () => form.itemName.length)
-const guardLocationDetail = makeLengthGuard(20, '具体位置最多 20 字', () => form.locationDetail.length)
-const guardColor = makeLengthGuard(20, '颜色最多 20 字', () => form.color.length)
+const onDateChange = (e) => {
+  const v = e.detail.value;
+  const todayStr = nowDateStr();
+  // 拦截未来日期（移动端 picker 的 end 不生效，这里兜底）
+  if (v > todayStr) {
+    uni.showToast({ title: '日期不能晚于今天', icon: 'none' });
+    return;
+  }
+  dateStr.value = v;
+  // 选到「今天」时，若已选时间晚于当前时刻则清空重选
+  if (v === todayStr && timeStr.value > nowTimeStr()) {
+    timeStr.value = '';
+  }
+  syncTime();
+};
+const onClockChange = (e) => {
+  const v = e.detail.value;
+  // 日期为今天时，时间不能晚于当前时刻（picker 的 end 对 time 无效，这里兜底）
+  if (dateStr.value === nowDateStr() && v > nowTimeStr()) {
+    uni.showToast({ title: '时间不能晚于当前时间', icon: 'none' });
+    return;
+  }
+  timeStr.value = v;
+  syncTime();
+};
 
 // 复位表单为「新建发布」状态（提交成功 / 取消时调用）
 const resetForm = () => {
@@ -270,6 +308,11 @@ const handleSubmit = async () => {
   }
   if (!timeStr.value) {
     uni.showToast({ title: '请选择具体时间', icon: 'none' });
+    return;
+  }
+  // 时间不能晚于当前时刻（picker 已限制上限，此处兜底异常输入）
+  if (parseDate(form.time) > Date.now()) {
+    uni.showToast({ title: '时间不能晚于当前时间', icon: 'none' });
     return;
   }
 
@@ -360,6 +403,13 @@ onShow(async () => {
   flex-direction: column;
   background-color: #F9F1E6;
   overflow: hidden;
+}
+
+/* 状态栏占位：白色背景与顶部导航栏连成一体，高度由 env()（iOS 刘海）或 statusBarHeight（App）决定 */
+.status-bar-space {
+  flex-shrink: 0;
+  height: env(safe-area-inset-top);
+  background-color: #FFFFFF;
 }
 
 .top-nav {

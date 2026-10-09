@@ -74,12 +74,12 @@
 import { reactive, ref } from 'vue'
 import { register, login, isStudentIdTaken } from '@/utils/auth.js'
 import {
-  willExceedLength,
   sanitizeUsername,
   sanitizePassword,
   sanitizePhone,
   sanitizeWechat,
-  sanitizeNickname
+  sanitizeNickname,
+  makeSanitizeInput
 } from '@/utils/inputRules.js'
 
 const isLogin = ref(true)
@@ -105,19 +105,14 @@ const checkDuplicate = () => {
   }
   dupHint.value = isStudentIdTaken(s) ? '该学号已被注册' : ''
 }
-// 按键拦截：单个可打印字符若非法则直接阻止录入，光标不移动。
-// 空格等非法字符在按键层就被拒绝，不进入输入框，也就不会先显示成圆点再被删掉。
+// 按键拦截（桌面端）：单个可打印字符若非法则直接阻止录入，光标不移动。
+// 超长限制由 maxlength 静默吞掉，不在按键层提示。
 const onUsernameKeydown = (e) => {
   const key = e.key || ''
   if (key.length !== 1) return
   if (!/\d/.test(key)) {
     e.preventDefault()
     uni.showToast({ title: '请输入数字', icon: 'none' })
-    return
-  }
-  if (willExceedLength(e, 20, form.username.length)) {
-    e.preventDefault()
-    uni.showToast({ title: '学号最长不超过 20 位', icon: 'none' })
   }
 }
 const onPasswordKeydown = (e) => {
@@ -126,135 +121,71 @@ const onPasswordKeydown = (e) => {
   if (!/[!-~]/.test(key)) {
     e.preventDefault()
     uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
-    return
-  }
-  if (willExceedLength(e, 16, form.password.length)) {
-    e.preventDefault()
-    uni.showToast({ title: '密码最长不超过 16 位', icon: 'none' })
   }
 }
-// 确认密码：与密码相同的拦截规则，但按确认密码自身的长度判断
+// 确认密码：与密码相同的拦截规则
 const onConfirmKeydown = (e) => {
   const key = e.key || ''
   if (key.length !== 1) return
   if (!/[!-~]/.test(key)) {
     e.preventDefault()
     uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
-    return
-  }
-  if (willExceedLength(e, 16, form.confirm.length)) {
-    e.preventDefault()
-    uni.showToast({ title: '密码最长不超过 16 位', icon: 'none' })
   }
 }
-
-// 学号输入：在 @input 里即时过滤为纯数字、最长 20 位。
-// 非法字符（字母/符号等）被直接剔除、不进入模型，并给出提示。
-const onUsernameInput = (e) => {
-  dupHint.value = ''
-  const raw = e.detail.value || ''
-  const clean = sanitizeUsername(raw)
-  if (clean !== raw) uni.showToast({ title: '请输入数字', icon: 'none' })
-  form.username = clean
-}
-
-// 密码输入：作为 keydown 拦截的兜底，过滤粘贴/自动填充等未经按键路径进入的非法字符。
-const onPasswordInput = (e) => {
-  const raw = e.detail.value || ''
-  const clean = sanitizePassword(raw)
-  if (clean !== raw) uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
-  form.password = clean
-}
-
-// 确认密码输入：与密码相同的过滤规则
-const onConfirmInput = (e) => {
-  const raw = e.detail.value || ''
-  const clean = sanitizePassword(raw)
-  if (clean !== raw) uni.showToast({ title: '请输入数字、字母或符号', icon: 'none' })
-  form.confirm = clean
-}
-
-// 手机号：仅数字、最长 11 位；按键层拦截非法字符 + 输入兜底过滤
 const onPhoneKeydown = (e) => {
   const key = e.key || ''
   if (key.length !== 1) return
   if (!/\d/.test(key)) {
     e.preventDefault()
     uni.showToast({ title: '请输入数字', icon: 'none' })
-    return
-  }
-  if (willExceedLength(e, 11, form.phone.length)) {
-    e.preventDefault()
-    uni.showToast({ title: '手机号最长不超过 11 位', icon: 'none' })
   }
 }
-const onPhoneInput = (e) => {
-  const raw = e.detail.value || ''
-  const clean = sanitizePhone(raw)
-  if (clean !== raw) uni.showToast({ title: '请输入数字', icon: 'none' })
-  form.phone = clean
-}
-
-// 微信号：字母、数字、下划线、短横线，最长 20 位
 const onWechatKeydown = (e) => {
   const key = e.key || ''
   if (key.length !== 1) return
   if (!/[A-Za-z0-9_-]/.test(key)) {
     e.preventDefault()
     uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
-    return
-  }
-  if (willExceedLength(e, 20, form.wechat.length)) {
-    e.preventDefault()
-    uni.showToast({ title: '微信号最长不超过 20 位', icon: 'none' })
   }
 }
-const onWechatInput = (e) => {
-  const raw = e.detail.value || ''
-  const clean = sanitizeWechat(raw)
-  if (clean !== raw) uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
-  form.wechat = clean
-}
-
-// 昵称：不能以空格开头，最长 20 位
 const onNicknameKeydown = (e) => {
   const key = e.key || ''
   if (key.length !== 1) return
   if (key === ' ' && !String(form.nickname || '').trim()) {
     e.preventDefault()
     uni.showToast({ title: '昵称不能以空格开头', icon: 'none' })
-    return
-  }
-  if (willExceedLength(e, 20, form.nickname.length)) {
-    e.preventDefault()
-    uni.showToast({ title: '昵称最长不超过 20 个字', icon: 'none' })
   }
 }
-const onNicknameInput = (e) => {
-  const raw = e.detail.value || ''
-  const clean = sanitizeNickname(raw)
-  if (clean !== raw) {
-    uni.showToast({ title: /^\s/.test(raw) ? '昵称不能以空格开头' : '昵称最长 20 个字', icon: 'none' })
-  }
-  form.nickname = clean
+
+// 输入兜底（移动端）：软键盘不触发 keydown，非法字符只能在 @input 里清洗并回退 DOM。
+// 超长由 maxlength 静默吞掉（不触发 input），故这里只过滤非法字符。
+const baseUsernameInput = makeSanitizeInput(sanitizeUsername, '请输入数字', (v) => { form.username = v })
+const onUsernameInput = (e) => {
+  dupHint.value = ''
+  baseUsernameInput(e)
 }
+const onPasswordInput = makeSanitizeInput(sanitizePassword, '请输入数字、字母或符号', (v) => { form.password = v })
+const onConfirmInput = makeSanitizeInput(sanitizePassword, '请输入数字、字母或符号', (v) => { form.confirm = v })
+const onPhoneInput = makeSanitizeInput(sanitizePhone, '请输入数字', (v) => { form.phone = v })
+const onWechatInput = makeSanitizeInput(sanitizeWechat, '请输入字母、数字、下划线或短横线', (v) => { form.wechat = v })
+const onNicknameInput = makeSanitizeInput(sanitizeNickname, '昵称不能以空格开头', (v) => { form.nickname = v })
 
 // 客户端校验：返回友好错误文案或空串
 // 学号：20 位以内数字；密码：6~16 位字母、数字、符号（ASCII 可打印字符）
 function validate() {
   const username = form.username.trim()
-  if (!username) return '学号不能为空'
+  if (!username) return '请输入学号（20位以内的数字）'
   if (username.length > 20 || !/^\d+$/.test(username)) return '学号请输入20位以内的数字'
-  if (!form.password) return '密码不能为空'
+  if (!form.password) return '请输入密码（6-16位字母、数字或符号）'
   if (form.password.length < 6 || form.password.length > 16 || !/^[!-~]+$/.test(form.password)) {
     return '密码请输入6-16位字母、数字或符号'
   }
   if (!isLogin.value) {
-    if (!form.confirm.trim()) return '请进行密码确认'
+    if (!form.confirm.trim()) return '请再次输入密码以确认'
     if (form.confirm !== form.password) return '两次输入的密码不一致'
-    if (!form.nickname.trim()) return '昵称不能为空'
-    if (!form.phone.trim()) return '手机号不能为空'
-    if (!/^1\d{10}$/.test(form.phone.trim())) return '手机号请输入11位数字'
+    if (!form.nickname.trim()) return '请输入昵称（20字以内）'
+    if (!form.phone.trim()) return '请输入手机号（11位数字）'
+    if (!/^1\d{10}$/.test(form.phone.trim())) return '手机号请输入11位数字（以1开头）'
   }
   return ''
 }
@@ -316,7 +247,7 @@ async function onSubmit() {
   width: 140rpx;
   height: 140rpx;
   margin-bottom: 20rpx;
-  margin-top: 30rpx;
+  margin-top: 80rpx;
 }
 
 .app-name {

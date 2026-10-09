@@ -78,6 +78,11 @@ onPageShow(async () => {
   uni.hideTabBar({ animation: false })
   // 从搜索页返回首页后复位搜索栏：首页搜索栏是临时入口，返回时清空避免残留上次关键词
   searchKeyword.value = ''
+  // 发布成功弹窗「返回首页」时复位到「全部」Tab，展示全部列表（而非停留在上次浏览的分类）
+  if (uni.getStorageSync('home_reset')) {
+    uni.removeStorageSync('home_reset')
+    currentCategory.value = ''
+  }
   try {
     rawItems.value = await getItems()
   } catch (e) {

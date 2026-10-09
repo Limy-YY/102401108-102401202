@@ -1,30 +1,10 @@
-// 输入框通用规则：统一处理"非法字符即时拦截 + 超长提示"。
+// 输入框通用规则：统一处理「非法字符即时拦截 + 超长静默限制」。
+// 超长由 maxlength 原生静默吞掉（不触发 input、无提示）；非法字符由
+// @keydown（桌面端）在按键层拦截、@input（移动端）在输入后清洗并回退。
 
-// 判断单个按键是否会导致超过最大长度：
-// 已输入的字符数达到上限且没有选中文字时，再输入一个可打印字符就会超长。
-// currentLength 取表单模型里的当前长度（可靠）；有选区时（替换选中内容）不算超长，
-// 交由 maxlength 自行处理。
-export function willExceedLength(e, max, currentLength) {
-  const el = e && e.target
-  const hasSelection = !!(el && el.selectionStart !== el.selectionEnd)
-  return currentLength >= max && !hasSelection
-}
+import { nextTick } from 'vue'
 
-// 生成一个"纯长度限制"的按键处理器：仅在超过最大长度时拦截并提示。
-// 用于只限制字数、不限制字符集的字段（如发布页的物品名称、颜色、位置）。
-export function makeLengthGuard(max, message, getLength) {
-  return (e) => {
-    const key = e.key || ''
-    if (key.length !== 1) return
-    if (willExceedLength(e, max, getLength())) {
-      e.preventDefault()
-      uni.showToast({ title: message, icon: 'none' })
-    }
-  }
-}
-
-// ===== 输入过滤（粘贴 / 自动填充兜底）：同步剔除非法字符 =====
-// 这些纯函数被登录/注册、编辑资料页的 @input 复用，集中定义便于统一测试与维护。
+// ===== 输入过滤纯函数（粘贴 / 自动填充 / 移动端兜底）：同步剔除非法字符并截断 =====
 
 // 手机号：仅保留数字，截断到 11 位
 export function sanitizePhone(raw) {
@@ -49,4 +29,27 @@ export function sanitizePassword(raw) {
 // 学号：仅保留数字，截断到 20 位
 export function sanitizeUsername(raw) {
   return String(raw || '').replace(/\D/g, '').slice(0, 20)
+}
+
+// ===== 移动端 @input 兜底 =====
+// 手机软键盘不触发 keydown，非法字符无法在按键层拦截，只能在 @input 里清洗。
+// 超长由 maxlength 原生静默吞掉（不触发 input），故这里只负责非法字符的过滤与提示。
+
+// 生成一个「非法字符过滤」的 @input 处理器：
+// 对 raw 过滤非法字符，若发生变化则提示，并把输入框 DOM 回退到清洗后的值。
+export function makeSanitizeInput(sanitize, illegalMsg, set) {
+  return (e) => {
+    const raw = e.detail.value || ''
+    const clean = sanitize(raw)
+    if (clean === raw) {
+      set(clean)
+      return
+    }
+    uni.showToast({ title: illegalMsg, icon: 'none' })
+    // 关键：clean 与当前模型值相同（如空串里输入单个非法字符）时，直接 set(clean) 不会
+    // 触发响应式，DOM 里的非法字符会残留。先写 raw 制造一次变更，再下一拍写回 clean，
+    // 让 uni-app 的 value 监听把输入框回退到清洗后的值。
+    set(raw)
+    nextTick(() => set(clean))
+  }
 }

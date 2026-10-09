@@ -19,11 +19,11 @@ export function isLoggedIn() {
   return !!getToken()
 }
 
-// 学号格式校验：非空 + 纯数字（不限位数）
+// 学号格式校验：非空 + 20 位以内纯数字（作为注册兜底，与登录页提示一致）
 export function validateStudentId(id) {
   const s = String(id || '').trim()
-  if (!s) return '请输入学号'
-  if (!/^\d+$/.test(s)) return '学号必须为纯数字'
+  if (!s) return '请输入学号（20位以内的数字）'
+  if (s.length > 20 || !/^\d+$/.test(s)) return '学号请输入20位以内的数字'
   return ''
 }
 
@@ -78,9 +78,11 @@ export async function register(payload) {
 
   const idErr = validateStudentId(username)
   if (idErr) throw new Error(idErr)
-  if (password.length < 6) throw new Error('密码至少 6 位')
-  if (!nickname) throw new Error('请输入昵称')
-  if (!/^1\d{10}$/.test(String(payload.phone || '').trim())) throw new Error('请输入11位数字')
+  if (password.length < 6 || password.length > 16 || !/^[!-~]+$/.test(password)) {
+    throw new Error('密码请输入6-16位字母、数字或符号')
+  }
+  if (!nickname || nickname.length > 20) throw new Error('请输入昵称（20字以内）')
+  if (!/^1\d{10}$/.test(String(payload.phone || '').trim())) throw new Error('手机号请输入11位数字（以1开头）')
 
   const users = readUsers()
   if (users.some(u => u.username === username)) {

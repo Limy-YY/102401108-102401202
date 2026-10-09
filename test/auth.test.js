@@ -26,8 +26,8 @@ describe('auth 注册/登录/会话', () => {
 
   test('TC15 注册非法输入：各校验判定分别抛出对应错误', async () => {
     await assert.rejects(() => register({ ...validUser, username: '' }), /请输入学号/)
-    await assert.rejects(() => register({ ...validUser, username: 'alice' }), /学号必须为纯数字/)
-    await assert.rejects(() => register({ ...validUser, password: '123' }), /密码至少 6 位/)
+    await assert.rejects(() => register({ ...validUser, username: 'alice' }), /学号请输入20位以内的数字/)
+    await assert.rejects(() => register({ ...validUser, password: '123' }), /密码请输入6-16位字母、数字或符号/)
     await assert.rejects(() => register({ ...validUser, nickname: '  ' }), /请输入昵称/)
     await assert.rejects(() => register({ ...validUser, phone: '123' }), /请输入11位数字/)
   })

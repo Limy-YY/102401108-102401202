@@ -1,5 +1,8 @@
 <template>
   <view class="page-container">
+    <!-- 状态栏占位：自定义导航下移，避开手机顶部状态栏（时间/电量/信号） -->
+    <view class="status-bar-space" :style="statusBarHeight ? { height: statusBarHeight + 'px' } : null"></view>
+
     <!-- 顶部导航 -->
     <view class="top-nav">
       <text class="back-btn" @click="goBack">‹</text>
@@ -48,14 +51,17 @@ import { reactive, ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getUserInfo } from '@/utils/user.js'
 import { updateUser } from '@/utils/auth.js'
-import { willExceedLength, sanitizePhone, sanitizeWechat, sanitizeNickname } from '@/utils/inputRules.js'
+import { sanitizePhone, sanitizeWechat, sanitizeNickname, makeSanitizeInput } from '@/utils/inputRules.js'
 import AvatarCropper from '@/components/AvatarCropper.vue'
-import { backOrHome } from '@/utils/nav.js'
+import { backOrHome, getStatusBarHeight } from '@/utils/nav.js'
 
 const form = reactive({ avatar: '', nickname: '', wechat: '', phone: '' })
 const saving = ref(false)
 const showCropper = ref(false)
 const cropSrc = ref('')
+
+// 状态栏高度：自定义导航栏下移，避开手机顶部状态栏（H5 下为 0，由 CSS env() 兜底）
+const statusBarHeight = getStatusBarHeight()
 
 // 进入时回填当前资料
 onLoad(() => {
@@ -91,84 +97,50 @@ const onCropConfirm = (dataUrl) => {
 
 const goBack = () => backOrHome()
 
-// 手机号：仅数字、最长 11 位；按键层拦截非法字符 + 输入兜底过滤
+// 按键拦截（桌面端）：非法字符直接阻止录入。超长由 maxlength 静默吞掉。
 const onPhoneKeydown = (e) => {
   const key = e.key || ''
   if (key.length !== 1) return
   if (!/\d/.test(key)) {
     e.preventDefault()
     uni.showToast({ title: '请输入数字', icon: 'none' })
-    return
-  }
-  if (willExceedLength(e, 11, form.phone.length)) {
-    e.preventDefault()
-    uni.showToast({ title: '手机号最长不超过 11 位', icon: 'none' })
   }
 }
-const onPhoneInput = (e) => {
-  const raw = e.detail.value || ''
-  const clean = sanitizePhone(raw)
-  if (clean !== raw) uni.showToast({ title: '请输入数字', icon: 'none' })
-  form.phone = clean
-}
-
-// 微信号：字母、数字、下划线、短横线，最长 20 位
 const onWechatKeydown = (e) => {
   const key = e.key || ''
   if (key.length !== 1) return
   if (!/[A-Za-z0-9_-]/.test(key)) {
     e.preventDefault()
     uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
-    return
-  }
-  if (willExceedLength(e, 20, form.wechat.length)) {
-    e.preventDefault()
-    uni.showToast({ title: '微信号最长不超过 20 位', icon: 'none' })
   }
 }
-const onWechatInput = (e) => {
-  const raw = e.detail.value || ''
-  const clean = sanitizeWechat(raw)
-  if (clean !== raw) uni.showToast({ title: '请输入字母、数字、下划线或短横线', icon: 'none' })
-  form.wechat = clean
-}
-
-// 昵称：不能以空格开头，最长 20 位
 const onNicknameKeydown = (e) => {
   const key = e.key || ''
   if (key.length !== 1) return
   if (key === ' ' && !String(form.nickname || '').trim()) {
     e.preventDefault()
     uni.showToast({ title: '昵称不能以空格开头', icon: 'none' })
-    return
-  }
-  if (willExceedLength(e, 20, form.nickname.length)) {
-    e.preventDefault()
-    uni.showToast({ title: '昵称最长不超过 20 个字', icon: 'none' })
   }
 }
-const onNicknameInput = (e) => {
-  const raw = e.detail.value || ''
-  const clean = sanitizeNickname(raw)
-  if (clean !== raw) {
-    uni.showToast({ title: /^\s/.test(raw) ? '昵称不能以空格开头' : '昵称最长 20 个字', icon: 'none' })
-  }
-  form.nickname = clean
-}
+
+// 输入兜底（移动端）：软键盘不触发 keydown，非法字符在 @input 里清洗并回退 DOM。
+const onPhoneInput = makeSanitizeInput(sanitizePhone, '请输入数字', (v) => { form.phone = v })
+const onWechatInput = makeSanitizeInput(sanitizeWechat, '请输入字母、数字、下划线或短横线', (v) => { form.wechat = v })
+const onNicknameInput = makeSanitizeInput(sanitizeNickname, '昵称不能以空格开头', (v) => { form.nickname = v })
 
 // 保存：校验后写入本地并刷新缓存
 const handleSave = async () => {
   if (saving.value) return
   if (!form.nickname.trim()) {
-    uni.showToast({ title: '请输入昵称', icon: 'none' })
+    uni.showToast({ title: '请输入昵称（20字以内）', icon: 'none' })
     return
   }
   if (!form.phone.trim()) {
-    uni.showToast({ title: '请输入手机号', icon: 'none' })
+    uni.showToast({ title: '请输入手机号（11位数字）', icon: 'none' })
     return
   }
   if (!/^1\d{10}$/.test(form.phone.trim())) {
-    uni.showToast({ title: '请输入11位数字', icon: 'none' })
+    uni.showToast({ title: '手机号请输入11位数字（以1开头）', icon: 'none' })
     return
   }
   saving.value = true
@@ -196,6 +168,13 @@ const handleSave = async () => {
   display: flex;
   flex-direction: column;
   background-color: #F9F1E6;
+}
+
+/* 状态栏占位：白色背景与顶部导航栏连成一体，高度由 env()（iOS 刘海）或 statusBarHeight（App）决定 */
+.status-bar-space {
+  flex-shrink: 0;
+  height: env(safe-area-inset-top);
+  background-color: #FFFFFF;
 }
 
 .top-nav {

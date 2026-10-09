@@ -55,9 +55,17 @@ export function formatRelativeTime(timestamp) {
   return formatTime(timestamp)
 }
 
-// 将 'YYYY-MM-DD' 解析为时间戳（手动解析，规避 iOS 对带横杠日期 new Date 解析的兼容问题）
+// 将 'YYYY-MM-DD' 或 'YYYY-MM-DD HH:mm' 解析为时间戳。
+// 手动解析（而非 new Date(str)），规避 iOS 对带横杠日期解析的兼容问题；
+// 兼容可选的时间部分——搜索页时间筛选传入的 item.time 是带 HH:mm 的完整串。
 export function parseDate(str) {
-  const parts = String(str).split('-').map(Number)
-  if (parts.length < 3 || parts.some(isNaN)) return NaN
-  return new Date(parts[0], parts[1] - 1, parts[2]).getTime()
+  const s = String(str || '').trim()
+  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}):(\d{1,2}))?/)
+  if (!m) return NaN
+  const y = Number(m[1])
+  const mo = Number(m[2])
+  const d = Number(m[3])
+  const h = m[4] === undefined ? 0 : Number(m[4])
+  const mi = m[5] === undefined ? 0 : Number(m[5])
+  return new Date(y, mo - 1, d, h, mi).getTime()
 }
