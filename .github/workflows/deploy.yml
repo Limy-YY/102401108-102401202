@@ -1,0 +1,55 @@
+# 部署 H5 到 GitHub Pages ——「浏览器预览」备选方案：
+# 让没有 Android 手机 / 使用 iOS 的测试人员也能在浏览器里预览手机端效果。
+name: Deploy H5 to Pages
+
+on:
+  push:
+    branches: [master, main]
+  # 允许手动触发
+  workflow_dispatch:
+
+# 允许写入 Pages，并生成部署所需的 id-token
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只保留一个部署在跑，避免并发冲突
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 安装依赖
+        run: npm install
+
+      - name: 构建 H5
+        # 直接用脚本构建，跳过 package.json 里会跑测试的 prebuild 钩子
+        # （测试文件不在仓库内，跑 prebuild 会失败）
+        run: node scripts/run.js build
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传构建产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/build/h5
+
+      - name: 部署到 Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

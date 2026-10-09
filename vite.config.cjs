@@ -5,7 +5,10 @@ process.env.UNI_INPUT_DIR = process.cwd()
 const { defineConfig } = require('vite')
 const uni = require('@dcloudio/vite-plugin-uni')
 
-module.exports = defineConfig({
+module.exports = defineConfig(({ command }) => ({
+  // 生产构建用相对路径，H5 产物可部署到 GitHub Pages 等任意子路径；
+  // 开发服务器保持根路径，不影响本地 fzulostandfound / 局域网访问。
+  base: command === 'build' ? './' : '/',
   plugins: [uni.default ? uni.default() : uni()],
   server: {
     host: true, // 监听所有网卡，允许用 fzulostandfound / 局域网 IP 访问
@@ -13,4 +16,4 @@ module.exports = defineConfig({
     open: true, // 启动开发服务器后自动打开浏览器
     allowedHosts: ['fzulostandfound'] // 放行自定义域名，避免 403
   }
-})
+}))
